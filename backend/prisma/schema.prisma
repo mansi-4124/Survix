@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,354 @@ generator client {
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AuthType {
+  LOCAL
+  GOOGLE
+  BOTH
+}
+
+enum OrganizationVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  ARCHIVED
+  SUSPENDED
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum OrganizationMemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  LEFT
+}
+
+enum SurveyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum SurveyVisibility {
+  PUBLIC
+  PRIVATE
+  LINK_ONLY
+}
+
+enum SurveyRole {
+  OWNER
+  EDITOR
+  ANALYST
+  VIEWER
+}
+
+enum QuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  CHECKBOX
+  RADIO
+  RATING
+  DATE
+  FILE_UPLOAD
+  AUDIO
+  VIDEO
+  RANKING
+}
+
+enum MediaType {
+  IMAGE
+  AUDIO
+  VIDEO
+  FILE
+}
+
+enum ResponseStatus {
+  COMPLETED
+  PARTIAL
+}
+
+//////////////////////////////////////////////////////
+// AUTH MODULE
+//////////////////////////////////////////////////////
+
+model User {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  email         String      @unique
+  username      String?     @unique
+  name          String?
+  avatarUrl     String?
+  emailVerified Boolean?
+  authType      AuthType
+  googleId      String?     @unique
+  status        UserStatus  @default(ACTIVE)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  passwordHistory PasswordHistory[]
+  organizations  OrganizationMember[]
+  surveyMembers  SurveyMember[]
+  responses      Response[]
+}
+
+model PasswordHistory {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////
+// ORGANIZATION MODULE
+//////////////////////////////////////////////////////
+
+model Organization {
+  id           String                  @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  slug         String                  @unique
+  logoUrl      String?
+  ownerId      String                  @db.ObjectId
+  description  String?
+  industry     String?
+  size         String?
+  websiteUrl   String?
+  contactEmail String?
+  visibility   OrganizationVisibility
+  status       OrganizationStatus
+  deletedAt    DateTime?
+
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  members      OrganizationMember[]
+  surveys      Survey[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model OrganizationMember {
+  id              String                    @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String                    @db.ObjectId
+  userId          String                    @db.ObjectId
+  role            OrganizationRole
+  status          OrganizationMemberStatus
+
+  joinedAt        DateTime?
+  leftAt          DateTime?
+  invitedBy       String?                   @db.ObjectId
+  removedBy       String?                   @db.ObjectId
+
+  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////
+// SURVEY MODULE
+//////////////////////////////////////////////////////
+
+model Survey {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String?
+
+  organizationId   String?         @db.ObjectId
+  ownerUserId      String?         @db.ObjectId
+
+  status           SurveyStatus
+  visibility       SurveyVisibility
+  allowAnonymous   Boolean
+  revision         Int             @default(1)
+
+  startDate        DateTime?
+  endDate          DateTime?
+  publishedAt      DateTime?
+  resultPublished  Boolean         @default(false)
+
+  deletedAt        DateTime?
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  organization     Organization?   @relation(fields: [organizationId], references: [id])
+  pages            SurveyPage[]
+  members          SurveyMember[]
+  responses        Response[]
+  mediaAssets      MediaAsset[]
+
+  @@index([organizationId])
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model SurveyPage {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  surveyId   String    @db.ObjectId
+  createdBy  String    @db.ObjectId
+  title      String
+  description String?
+  order      Int
+
+  survey     Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions  Question[]
+
+  @@index([surveyId])
+}
+
+model SurveyMember {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  surveyId    String      @db.ObjectId
+  userId      String      @db.ObjectId
+  role        SurveyRole
+  assignedBy  String?     @db.ObjectId
+  assignedAt  DateTime    @default(now())
+  removedAt   DateTime?
+
+  survey      Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, userId])
+  @@index([surveyId])
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////
+// QUESTION MODULE
+//////////////////////////////////////////////////////
+
+model Question {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  pageId          String        @db.ObjectId
+  text            String
+  description     String?
+  type            QuestionType
+  isRequired      Boolean
+  randomizeOptions Boolean
+  order           Int
+  settings        Json?
+  mediaAssetId    String?       @db.ObjectId
+  createdBy       String        @db.ObjectId
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  page            SurveyPage    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  options         QuestionOption[]
+  answers         Answer[]
+
+  @@index([pageId])
+  @@index([mediaAssetId])
+}
+
+model QuestionOption {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  questionId   String    @db.ObjectId
+  createdBy    String    @db.ObjectId
+  label        String
+  value        String
+  order        Int
+  mediaAssetId String?   @db.ObjectId
+
+  createdAt    DateTime  @default(now())
+
+  question     Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@unique([questionId, value])
+}
+
+//////////////////////////////////////////////////////
+// MEDIA MODULE
+//////////////////////////////////////////////////////
+
+model MediaAsset {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId     String     @db.ObjectId
+  surveyId    String?    @db.ObjectId
+  type        MediaType
+  url         String
+  storageKey  String
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  duration    Int?
+
+  createdAt   DateTime   @default(now())
+
+  survey      Survey?    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([surveyId])
+  @@index([ownerId, surveyId])
+}
+
+//////////////////////////////////////////////////////
+// RESPONSE MODULE
+//////////////////////////////////////////////////////
+
+model Response {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  surveyId       String         @db.ObjectId
+  userId         String?        @db.ObjectId
+  anonymousId    String?
+  submittedAt    DateTime?
+  completionTime Int?
+  ipAddress      String?
+  userAgent      String?
+  status         ResponseStatus
+
+  createdAt      DateTime       @default(now())
+
+  survey         Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id])
+
+  answers        Answer[]
+
+  @@index([surveyId])
+  @@index([userId])
+  @@unique([surveyId, userId])
+}
+
+model Answer {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  responseId  String     @db.ObjectId
+  questionId  String     @db.ObjectId
+  value       Json
+  createdAt   DateTime   @default(now())
+
+  response    Response   @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question    Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([responseId])
+  @@index([questionId])
+  @@unique([responseId, questionId])
 }
