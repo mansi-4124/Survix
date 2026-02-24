@@ -23,6 +23,7 @@ import { ForgotPasswordDto } from './dto/request/forgot-password.dto.request';
 import { ResetPasswordDto } from './dto/request/reset-password.dto.request';
 import { GoogleLoginDto } from './dto/request/google-login.dto.request';
 import { AuthResponseDto } from './dto/response/auth-response.dto.response';
+import { Public } from './decorators/public.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -34,6 +35,7 @@ export class AuthController {
   SIGNUP
   =====================================================
   */
+  @Public()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user and send OTP' })
@@ -49,6 +51,7 @@ export class AuthController {
   =====================================================
   */
   @Post('verify-email')
+  @Public()
   @ApiResponse({ status: 200, type: AuthResponseDto })
   @ApiOperation({ summary: 'Verify email with OTP' })
   async verifyEmail(
@@ -56,7 +59,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.verifyEmail(dto.email, dto.otp);
-
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
     return this.mapAuthResultToDto(result);
@@ -67,6 +69,7 @@ export class AuthController {
   LOGIN
   =====================================================
   */
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
@@ -87,6 +90,7 @@ export class AuthController {
   REFRESH TOKEN
   =====================================================
   */
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using cookie' })
@@ -127,6 +131,7 @@ export class AuthController {
   FORGOT PASSWORD
   =====================================================
   */
+  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send password reset token' })
@@ -140,6 +145,7 @@ export class AuthController {
   RESET PASSWORD
   =====================================================
   */
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password using reset token' })
@@ -158,6 +164,7 @@ export class AuthController {
   GOOGLE LOGIN / SIGNUP
   =====================================================
   */
+  @Public()
   @Post('google')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

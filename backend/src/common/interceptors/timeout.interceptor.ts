@@ -15,7 +15,7 @@ import {
 
 @Injectable()
 export class TimeoutInterceptor implements NestInterceptor {
-  constructor(private readonly timeoutMs = 300000) {}
+  constructor(private readonly timeoutMs = 1500000) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(

@@ -22,7 +22,9 @@ export class OrganizationMemberGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const orgId = request.params.orgId as string | undefined;
+    const orgId =
+      (request.params.orgId as string | undefined) ??
+      (request.body?.organizationId as string | undefined);
     if (!orgId) {
       // Some routes (like accept-invite) may not have orgId
       return true;

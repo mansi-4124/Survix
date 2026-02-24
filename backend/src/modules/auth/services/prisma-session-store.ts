@@ -23,7 +23,7 @@ export class PrismaSessionStore implements ISessionStore {
 
   async findBySessionId(sessionId: string): Promise<RefreshSession | null> {
     const record = await this.prisma.session.findUnique({
-      where: { id: sessionId },
+      where: { sessionId },
     });
 
     if (!record) return null;
@@ -32,7 +32,7 @@ export class PrismaSessionStore implements ISessionStore {
   }
   async delete(sessionId: string) {
     await this.prisma.session.delete({
-      where: { id: sessionId },
+      where: { sessionId },
     });
   }
 

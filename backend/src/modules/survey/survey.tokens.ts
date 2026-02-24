@@ -1,0 +1,3 @@
+export const SURVEY_TOKENS = {
+  SURVEY_ACCESS_TOKEN_SERVICE: Symbol('SURVEY_ACCESS_TOKEN_SERVICE'),
+} as const;

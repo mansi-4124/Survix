@@ -29,5 +29,6 @@ import { AuthModule } from '../auth/auth.module';
     OrganizationRoleGuard,
     AuditInterceptor,
   ],
+  exports: [OrganizationService, OrganizationMemberGuard, OrganizationRoleGuard],
 })
 export class OrganizationModule {}

@@ -9,6 +9,11 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const requestTimeoutMs = Number(process.env.REQUEST_TIMEOUT_MS ?? 15000);
+  const safeTimeoutMs =
+    Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0
+      ? requestTimeoutMs
+      : 15000;
 
   app.enableCors({ origin: true, credentials: true });
 
@@ -28,7 +33,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
     new TransformResponseInterceptor(),
-    new TimeoutInterceptor(5000),
+    new TimeoutInterceptor(safeTimeoutMs),
   );
 
   setupSwagger(app);

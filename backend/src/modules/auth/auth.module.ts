@@ -22,6 +22,9 @@ import { EmailService } from './services/email.service';
 import { GoogleTokenService } from './services/google-token.service';
 import { EmailModule } from 'src/common/email/email.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 
 @Module({
   imports: [
@@ -68,7 +71,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       provide: AUTH_TOKENS.EMAIL_SERVICE,
       useClass: EmailService,
     },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    OptionalJwtAuthGuard,
   ],
-  exports: [AuthService],
+  exports: [AuthService, OptionalJwtAuthGuard],
 })
 export class AuthModule {}

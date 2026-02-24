@@ -1,11 +1,10 @@
 import type { IEmailService } from './domain/interfaces/email-service.interface';
-import { EmailService } from './services/email.service';
 import {
   Injectable,
-  UnauthorizedException,
   BadRequestException,
   ForbiddenException,
   Inject,
+  ConflictException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
@@ -19,7 +18,6 @@ import { AuthResult } from './domain/types/auth-result.type';
 import { AuthUser } from './domain/types/auth-user.type';
 import { TokenType } from './domain/enums/token-type.enum';
 import type { IOtpService } from './domain/interfaces/otp-service.interface';
-import type { ISessionStore } from './domain/interfaces/session-store.interface';
 import { SessionService } from './services/session.service';
 import { AUTH_TOKENS } from './auth.tokens';
 import { GoogleTokenService } from './services/google-token.service';
@@ -64,25 +62,43 @@ export class AuthService {
     password: string,
     username?: string,
   ): Promise<void> {
-    const existing = await this.userRepository.findByEmail(email);
-    if (existing) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await this.userRepository.findByEmail(normalizedEmail);
+
+    if (existing && existing.status === AccountStatus.ACTIVE) {
       throw new BadRequestException('Email already registered');
+    }
+
+    if (existing) {
+      const otp = await this.otpService.generateOtp(normalizedEmail);
+      await this.emailService.sendOtp(normalizedEmail, otp);
+      return;
     }
 
     const passwordHash = await this.hashingService.hash(password);
 
-    await this.userRepository.create({
-      email,
-      username,
-      passwordHash,
-      status: AccountStatus.PENDING_VERIFICATION,
-      emailVerified: false,
-      failedLoginAttempts: 0,
-      lockUntil: null,
-    });
+    try {
+      await this.userRepository.create({
+        email: normalizedEmail,
+        username,
+        passwordHash,
+        status: AccountStatus.PENDING_VERIFICATION,
+        emailVerified: false,
+        failedLoginAttempts: 0,
+        lockUntil: null,
+      });
+    } catch (error) {
+      const persistedUser = await this.userRepository.findByEmail(normalizedEmail);
+      if (persistedUser && persistedUser.status !== AccountStatus.ACTIVE) {
+        const otp = await this.otpService.generateOtp(normalizedEmail);
+        await this.emailService.sendOtp(normalizedEmail, otp);
+        return;
+      }
+      throw new ConflictException('Unable to create account');
+    }
 
-    const otp = await this.otpService.generateOtp(email);
-    await this.emailService.sendOtp(email, otp);
+    const otp = await this.otpService.generateOtp(normalizedEmail);
+    await this.emailService.sendOtp(normalizedEmail, otp);
   }
 
   /*
@@ -94,11 +110,16 @@ export class AuthService {
   =====================================================
   */
   async verifyEmail(email: string, otp: string): Promise<AuthResult> {
-    const user = await this.userRepository.findByEmail(email);
-    if (!user) throw new UnauthorizedException('Invalid OTP');
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.userRepository.findByEmail(normalizedEmail);
+    if (!user) throw new BadRequestException('User not found');
 
-    const valid = await this.otpService.verifyOtp(email, otp);
-    if (!valid) throw new UnauthorizedException('Invalid OTP');
+    if (user.status === AccountStatus.ACTIVE && user.emailVerified) {
+      return this.createSessionAndTokens(user);
+    }
+
+    const valid = await this.otpService.verifyOtp(normalizedEmail, otp);
+    if (!valid) throw new BadRequestException('Invalid or expired OTP');
 
     const updatedUser = await this.userRepository.update(user.id, {
       status: AccountStatus.ACTIVE,
@@ -149,6 +170,10 @@ export class AuthService {
   =====================================================
   */
   async refresh(refreshToken: string): Promise<AuthResult> {
+    if (!refreshToken) {
+      throw new ForbiddenException('Refresh token missing');
+    }
+
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
 
     if (payload.type !== TokenType.REFRESH) {
@@ -182,6 +207,10 @@ export class AuthService {
   =====================================================
   */
   async logout(refreshToken: string): Promise<void> {
+    if (!refreshToken) {
+      return;
+    }
+
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
     await this.sessionService.invalidateSession(payload.sessionId);
   }
@@ -232,9 +261,8 @@ export class AuthService {
   =====================================================
   */
   async googleLoginOrSignup(googleToken: string): Promise<AuthResult> {
-    const googleProfile = await this.googleTokenService.verifyIdToken(
-      googleToken,
-    );
+    const googleProfile =
+      await this.googleTokenService.verifyIdToken(googleToken);
 
     let user = await this.userRepository.findByEmail(googleProfile.email);
 

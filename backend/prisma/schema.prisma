@@ -131,8 +131,7 @@ model PasswordHistory {
 }
 
 model Session {
-  id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  sessionId        String    @unique
+  sessionId        String @id @default(uuid()) @map("_id")
   userId           String    @db.ObjectId
   refreshTokenHash String
   expiresAt        DateTime
@@ -234,6 +233,7 @@ model Survey {
   @@index([organizationId])
   @@index([ownerUserId])
   @@index([status])
+  @@index([visibility, status])
   @@index([endDate])
 }
 
@@ -293,6 +293,7 @@ model Question {
   answers Answer[]
 
   @@index([pageId])
+  @@index([pageId, order])
   @@index([mediaAssetId])
 }
 
@@ -363,6 +364,7 @@ model Response {
 
   @@unique([surveyId, userId])
   @@index([surveyId])
+  @@index([surveyId, status])
   @@index([userId])
 }
 
