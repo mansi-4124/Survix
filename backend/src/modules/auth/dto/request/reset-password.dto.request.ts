@@ -1,13 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsUUID } from 'class-validator';
+import { IsString, Matches } from 'class-validator';
 import { StrongPasswordField } from 'src/common/decorators/password.decorator';
 
 export class ResetPasswordDto {
   @ApiProperty({
-    description: 'User ID',
-    example: 'c6f4d31c-8baf-4e2e-9c6b-8ef47a3a11a2',
+    description: 'User ID (Mongo ObjectId)',
+    example: '60f7f0b3b4d1c2a5f8e9a123',
   })
-  @IsUUID()
+  @Matches(/^[a-fA-F0-9]{24}$/, {
+    message: 'userId must be a valid Mongo ObjectId',
+  })
   userId: string;
 
   @ApiProperty({

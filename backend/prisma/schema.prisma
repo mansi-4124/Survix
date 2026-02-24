@@ -14,6 +14,7 @@ datasource db {
 enum UserStatus {
   ACTIVE
   SUSPENDED
+  PENDING_VERIFICATION
 }
 
 enum AuthType {
@@ -55,7 +56,6 @@ enum SurveyStatus {
 enum SurveyVisibility {
   PUBLIC
   PRIVATE
-  LINK_ONLY
 }
 
 enum SurveyRole {
@@ -95,23 +95,28 @@ enum ResponseStatus {
 //////////////////////////////////////////////////////
 
 model User {
-  id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  email         String      @unique
-  username      String?     @unique
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  email         String     @unique
+  username      String?    @unique
+  passwordHash  String?
   name          String?
-  avatarUrl     String?
+  avatar        String?
   emailVerified Boolean?
   authType      AuthType
-  googleId      String?     @unique
-  status        UserStatus  @default(ACTIVE)
+  googleId      String?    @unique
+  status        UserStatus @default(ACTIVE)
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  failedLoginAttempts  Int      @default(0)
+  lockUntil            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   passwordHistory PasswordHistory[]
-  organizations  OrganizationMember[]
-  surveyMembers  SurveyMember[]
-  responses      Response[]
+  organizations   OrganizationMember[]
+  surveyMembers   SurveyMember[]
+  responses       Response[]
+  sessions        Session[]
 }
 
 model PasswordHistory {
@@ -120,9 +125,27 @@ model PasswordHistory {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Session {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId        String    @unique
+  userId           String    @db.ObjectId
+  refreshTokenHash String
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  revokedAt        DateTime?
+
+  userAgent        String?
+  ipAddress        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 //////////////////////////////////////////////////////
@@ -130,11 +153,11 @@ model PasswordHistory {
 //////////////////////////////////////////////////////
 
 model Organization {
-  id           String                  @id @default(auto()) @map("_id") @db.ObjectId
+  id           String                 @id @default(auto()) @map("_id") @db.ObjectId
   name         String
-  slug         String                  @unique
+  slug         String                 @unique
   logoUrl      String?
-  ownerId      String                  @db.ObjectId
+  ownerId      String                 @db.ObjectId
   description  String?
   industry     String?
   size         String?
@@ -144,30 +167,30 @@ model Organization {
   status       OrganizationStatus
   deletedAt    DateTime?
 
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  members      OrganizationMember[]
-  surveys      Survey[]
+  members OrganizationMember[]
+  surveys Survey[]
 
   @@index([ownerId])
   @@index([status])
 }
 
 model OrganizationMember {
-  id              String                    @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId  String                    @db.ObjectId
-  userId          String                    @db.ObjectId
-  role            OrganizationRole
-  status          OrganizationMemberStatus
+  id             String                   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String                   @db.ObjectId
+  userId         String                   @db.ObjectId
+  role           OrganizationRole
+  status         OrganizationMemberStatus
 
-  joinedAt        DateTime?
-  leftAt          DateTime?
-  invitedBy       String?                   @db.ObjectId
-  removedBy       String?                   @db.ObjectId
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  invitedBy String?   @db.ObjectId
+  removedBy String?   @db.ObjectId
 
-  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -179,33 +202,34 @@ model OrganizationMember {
 //////////////////////////////////////////////////////
 
 model Survey {
-  id               String          @id @default(auto()) @map("_id") @db.ObjectId
-  title            String
-  description      String?
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
 
-  organizationId   String?         @db.ObjectId
-  ownerUserId      String?         @db.ObjectId
+  organizationId String? @db.ObjectId
+  ownerUserId    String? @db.ObjectId
 
-  status           SurveyStatus
-  visibility       SurveyVisibility
-  allowAnonymous   Boolean
-  revision         Int             @default(1)
+  status         SurveyStatus
+  visibility     SurveyVisibility
+  allowAnonymous Boolean
+  randomizeQuestions Boolean
+  revision       Int              @default(1)
 
-  startDate        DateTime?
-  endDate          DateTime?
-  publishedAt      DateTime?
-  resultPublished  Boolean         @default(false)
+  startDate       DateTime?
+  endDate         DateTime?
+  publishedAt     DateTime?
+  resultPublished Boolean   @default(false)
 
-  deletedAt        DateTime?
+  deletedAt DateTime?
 
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  organization     Organization?   @relation(fields: [organizationId], references: [id])
-  pages            SurveyPage[]
-  members          SurveyMember[]
-  responses        Response[]
-  mediaAssets      MediaAsset[]
+  organization Organization?  @relation(fields: [organizationId], references: [id])
+  pages        SurveyPage[]
+  members      SurveyMember[]
+  responses    Response[]
+  mediaAssets  MediaAsset[]
 
   @@index([organizationId])
   @@index([ownerUserId])
@@ -214,30 +238,30 @@ model Survey {
 }
 
 model SurveyPage {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  surveyId   String    @db.ObjectId
-  createdBy  String    @db.ObjectId
-  title      String
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  surveyId    String  @db.ObjectId
+  createdBy   String  @db.ObjectId
+  title       String
   description String?
-  order      Int
+  order       Int
 
-  survey     Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  questions  Question[]
+  survey    Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions Question[]
 
   @@index([surveyId])
 }
 
 model SurveyMember {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  surveyId    String      @db.ObjectId
-  userId      String      @db.ObjectId
-  role        SurveyRole
-  assignedBy  String?     @db.ObjectId
-  assignedAt  DateTime    @default(now())
-  removedAt   DateTime?
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  surveyId   String     @db.ObjectId
+  userId     String     @db.ObjectId
+  role       SurveyRole
+  assignedBy String?    @db.ObjectId
+  assignedAt DateTime   @default(now())
+  removedAt  DateTime?
 
-  survey      Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([surveyId, userId])
   @@index([surveyId])
@@ -249,44 +273,44 @@ model SurveyMember {
 //////////////////////////////////////////////////////
 
 model Question {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  pageId          String        @db.ObjectId
-  text            String
-  description     String?
-  type            QuestionType
-  isRequired      Boolean
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  pageId           String       @db.ObjectId
+  text             String
+  description      String?
+  type             QuestionType
+  isRequired       Boolean
   randomizeOptions Boolean
-  order           Int
-  settings        Json?
-  mediaAssetId    String?       @db.ObjectId
-  createdBy       String        @db.ObjectId
+  order            Int
+  settings         Json?
+  mediaAssetId     String?      @db.ObjectId
+  createdBy        String       @db.ObjectId
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  page            SurveyPage    @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  options         QuestionOption[]
-  answers         Answer[]
+  page    SurveyPage       @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers Answer[]
 
   @@index([pageId])
   @@index([mediaAssetId])
 }
 
 model QuestionOption {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  questionId   String    @db.ObjectId
-  createdBy    String    @db.ObjectId
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  questionId   String  @db.ObjectId
+  createdBy    String  @db.ObjectId
   label        String
   value        String
   order        Int
-  mediaAssetId String?   @db.ObjectId
+  mediaAssetId String? @db.ObjectId
 
-  createdAt    DateTime  @default(now())
+  createdAt DateTime @default(now())
 
-  question     Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([questionId])
   @@unique([questionId, value])
+  @@index([questionId])
 }
 
 //////////////////////////////////////////////////////
@@ -294,21 +318,21 @@ model QuestionOption {
 //////////////////////////////////////////////////////
 
 model MediaAsset {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  ownerId     String     @db.ObjectId
-  surveyId    String?    @db.ObjectId
-  type        MediaType
-  url         String
-  storageKey  String
-  mimeType    String
-  size        Int
-  width       Int?
-  height      Int?
-  duration    Int?
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId    String    @db.ObjectId
+  surveyId   String?   @db.ObjectId
+  type       MediaType
+  url        String
+  storageKey String
+  mimeType   String
+  size       Int
+  width      Int?
+  height     Int?
+  duration   Int?
 
-  createdAt   DateTime   @default(now())
+  createdAt DateTime @default(now())
 
-  survey      Survey?    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  survey Survey? @relation(fields: [surveyId], references: [id], onDelete: Cascade)
 
   @@index([ownerId])
   @@index([surveyId])
@@ -330,29 +354,29 @@ model Response {
   userAgent      String?
   status         ResponseStatus
 
-  createdAt      DateTime       @default(now())
+  createdAt DateTime @default(now())
 
-  survey         Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  user           User?          @relation(fields: [userId], references: [id])
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
 
-  answers        Answer[]
+  answers Answer[]
 
+  @@unique([surveyId, userId])
   @@index([surveyId])
   @@index([userId])
-  @@unique([surveyId, userId])
 }
 
 model Answer {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  responseId  String     @db.ObjectId
-  questionId  String     @db.ObjectId
-  value       Json
-  createdAt   DateTime   @default(now())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  responseId String   @db.ObjectId
+  questionId String   @db.ObjectId
+  value      Json
+  createdAt  DateTime @default(now())
 
-  response    Response   @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  question    Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@unique([responseId, questionId])
   @@index([responseId])
   @@index([questionId])
-  @@unique([responseId, questionId])
 }
