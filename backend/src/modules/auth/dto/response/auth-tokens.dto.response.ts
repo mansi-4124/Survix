@@ -7,8 +7,19 @@ export class AuthTokensDto {
   accessToken: string;
 
   @ApiProperty({
-    description: 'Token expiration in seconds',
+    description: 'JWT refresh token (httpOnly cookie is preferred)',
+  })
+  refreshToken: string;
+
+  @ApiProperty({
+    description: 'Access token expiration in seconds',
     example: 900,
   })
-  expiresIn: number;
+  accessTokenExpiresIn: number;
+
+  @ApiProperty({
+    description: 'Refresh token expiration in seconds',
+    example: 604800,
+  })
+  refreshTokenExpiresIn: number;
 }

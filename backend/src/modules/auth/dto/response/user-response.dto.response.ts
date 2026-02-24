@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class UserResponseDto {
   @ApiProperty({
-    example: 'c6f4d31c-8baf-4e2e-9c6b-8ef47a3a11a2',
+    example: '60f7f0b3b4d1c2a5f8e9a123',
   })
   id: string;
 
@@ -13,18 +13,19 @@ export class UserResponseDto {
 
   @ApiProperty({
     example: 'john_doe',
+    required: false,
   })
-  username: string;
+  username?: string | null;
 
   @ApiProperty({
     example: 'John Doe',
     required: false,
   })
-  name?: string;
+  name?: string | null;
 
   @ApiProperty({
     example: 'https://cdn.app.com/avatar.png',
     required: false,
   })
-  avatar?: string;
+  avatar?: string | null;
 }
