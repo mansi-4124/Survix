@@ -12,5 +12,11 @@ export function setupSwagger(app: INestApplication) {
   const doc = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('docs', app, doc);
-  fs.writeFileSync('./openapi.json', JSON.stringify(doc));
+  const shouldWrite =
+    process.env.WRITE_OPENAPI_JSON === 'true' ||
+    process.env.NODE_ENV === 'development';
+
+  if (shouldWrite) {
+    fs.writeFileSync('./openapi.json', JSON.stringify(doc));
+  }
 }

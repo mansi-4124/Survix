@@ -4,7 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrganizationMemberStatus, OrganizationStatus } from '@prisma/client';
+import {
+  OrganizationAccountType,
+  OrganizationMemberStatus,
+  OrganizationStatus,
+  OrganizationVisibility,
+} from '@prisma/client';
 import { Inject } from '@nestjs/common';
 import { ORGANIZATION_TOKENS } from '../organization.tokens';
 import type {
@@ -17,6 +22,7 @@ import { OrganizationDomain } from '../domain/types/organization.type';
 import { OrganizationMemberDomain } from '../domain/types/organization-member.type';
 import { OrganizationRoleDomain } from '../domain/enums/organization-role.enum';
 import { EmailSenderService } from 'src/common/email/email.service';
+import { buildSurvixEmailHtml } from 'src/common/email/email-template';
 import { Redis } from '@upstash/redis';
 import { REDIS_CLIENT } from 'src/common/redis/redis.module';
 import { randomBytes, createHash } from 'crypto';
@@ -55,6 +61,8 @@ export class OrganizationService {
     const input: CreateOrganizationInput = {
       name: dto.name,
       slug: dto.slug,
+      accountType: OrganizationAccountType.ORGANIZATION,
+      isPersonal: false,
       visibility: dto.visibility,
       description: dto.description,
       industry: dto.industry,
@@ -65,6 +73,42 @@ export class OrganizationService {
     };
 
     const organization = await this.organizationRepository.create(input);
+
+    const membership = await this.memberRepository.createOwnerMembership(
+      organization.id,
+      userId,
+    );
+
+    return { organization, membership };
+  }
+
+  async createPersonalWorkspace(userId: string, userEmail: string) {
+    const existing = await this.organizationRepository.findByUser(userId);
+    const personalWorkspace = existing.find(
+      ({ organization }) =>
+        organization.accountType === OrganizationAccountType.PERSONAL ||
+        organization.isPersonal,
+    );
+
+    if (personalWorkspace) {
+      return personalWorkspace;
+    }
+
+    const emailPrefix = userEmail.split('@')[0] || 'personal';
+    const safePrefix = emailPrefix
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const slug = `${safePrefix || 'personal'}-${Date.now()}`;
+
+    const organization = await this.organizationRepository.create({
+      name: 'Personal Workspace',
+      slug,
+      ownerId: userId,
+      accountType: OrganizationAccountType.PERSONAL,
+      isPersonal: true,
+      visibility: OrganizationVisibility.PRIVATE,
+    });
 
     const membership = await this.memberRepository.createOwnerMembership(
       organization.id,
@@ -124,6 +168,18 @@ export class OrganizationService {
     currentOwnerId: string,
     newOwnerUserId: string,
   ): Promise<void> {
+    if (currentOwnerId === newOwnerUserId) {
+      throw new BadRequestException('New owner cannot be current owner');
+    }
+
+    const currentOwnerMembership = await this.memberRepository.findMembership(
+      orgId,
+      currentOwnerId,
+    );
+    if (!currentOwnerMembership) {
+      throw new NotFoundException('Current owner membership not found');
+    }
+
     const membership = await this.memberRepository.findMembership(
       orgId,
       newOwnerUserId,
@@ -135,6 +191,10 @@ export class OrganizationService {
 
     await this.memberRepository.updateMembership(membership.id, {
       role: OrganizationRoleDomain.OWNER,
+    });
+
+    await this.memberRepository.updateMembership(currentOwnerMembership.id, {
+      role: OrganizationRoleDomain.ADMIN,
     });
 
     await this.organizationRepository.update(orgId, {
@@ -157,6 +217,10 @@ export class OrganizationService {
 
   async listMembers(orgId: string): Promise<OrganizationMemberDomain[]> {
     return this.memberRepository.listMembers(orgId);
+  }
+
+  async searchUsers(query: string) {
+    return this.memberRepository.searchUsers(query);
   }
 
   private assertCanAssignRole(
@@ -190,12 +254,36 @@ export class OrganizationService {
   ): Promise<void> {
     this.assertCanAssignRole(actorMembership.role, role);
 
+    const organization = await this.organizationRepository.findById(orgId);
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    const existingUser = await this.memberRepository.findUserByEmail(email);
+    if (!existingUser) {
+      throw new BadRequestException(
+        'User does not exist, ask them to signup to send invite',
+      );
+    }
+
+    const existingMembership = await this.memberRepository.findMembership(
+      orgId,
+      existingUser.id,
+    );
+    if (existingMembership) {
+      if (existingMembership.status !== OrganizationMemberStatus.LEFT) {
+        throw new BadRequestException(
+          'User is already a member or has a pending invite',
+        );
+      }
+    }
+
     const rawToken = randomBytes(64).toString('hex');
     const hashedToken = this.hashToken(rawToken);
 
     const payload: InvitePayload = {
       orgId,
-      email,
+      email: existingUser.email,
       role,
     };
 
@@ -205,11 +293,56 @@ export class OrganizationService {
       ex: this.inviteTtlSeconds,
     });
 
+    if (existingMembership) {
+      await this.memberRepository.updateMembership(existingMembership.id, {
+        status: OrganizationMemberStatus.INVITED,
+        role,
+        invitedBy: actorMembership.userId,
+        joinedAt: null,
+      });
+    } else {
+      await this.memberRepository.createMember(
+        orgId,
+        existingUser.id,
+        role,
+        actorMembership.userId,
+        OrganizationMemberStatus.INVITED,
+      );
+    }
+
+    const frontendBaseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
+    const inviteUrl = `${frontendBaseUrl}/app?inviteToken=${encodeURIComponent(
+      rawToken,
+    )}`;
+    const inviteTtlDays = Math.round(this.inviteTtlSeconds / (60 * 60 * 24));
+    const expiresAt = new Date(Date.now() + this.inviteTtlSeconds * 1000);
+    const expiresAtUtc = expiresAt.toLocaleString('en-US', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+    const expiryDetails = `This invitation expires in ${inviteTtlDays} days (on ${expiresAtUtc}).`;
+
     await this.emailSender.sendMail({
-      to: email,
-      subject: 'Organization invite',
-      text: `You have been invited to join an organization. Use this token to accept the invite: ${rawToken}`,
-      html: `<p>You have been invited to join an organization.</p><p>Use this token to accept the invite:</p><p><strong>${rawToken}</strong></p>`,
+      to: existingUser.email,
+      subject: `You're invited to join ${organization.name} on Survix`,
+      text:
+        `You have been invited to join ${organization.name} on Survix.\n\n` +
+        `Accept the invite: ${inviteUrl}\n\n` +
+        `${expiryDetails}\n\n` +
+        `If you did not expect this invitation, you can ignore this email.`,
+      html: buildSurvixEmailHtml({
+        heading: `You're invited to join ${organization.name}`,
+        body:
+          `You have been invited to join ${organization.name} on Survix.` +
+          ` Click below to accept your invite and sign in. ${expiryDetails}`,
+        actionLabel: 'Accept Invitation',
+        actionUrl: inviteUrl,
+      }),
     });
   }
 
@@ -237,14 +370,22 @@ export class OrganizationService {
     );
 
     if (existingMembership) {
-      throw new BadRequestException('User is already a member');
-    }
+      if (existingMembership.status !== OrganizationMemberStatus.INVITED) {
+        throw new BadRequestException('User is already a member');
+      }
 
-    await this.memberRepository.createMember(
-      payload.orgId,
-      userId,
-      payload.role,
-    );
+      await this.memberRepository.updateMembership(existingMembership.id, {
+        status: OrganizationMemberStatus.ACTIVE,
+        joinedAt: new Date(),
+        role: payload.role,
+      });
+    } else {
+      await this.memberRepository.createMember(
+        payload.orgId,
+        userId,
+        payload.role,
+      );
+    }
 
     await this.redis.del(key);
 
@@ -290,6 +431,17 @@ export class OrganizationService {
       throw new ForbiddenException(
         'Suspended members cannot leave organization',
       );
+    }
+
+    if (membership.role === OrganizationRoleDomain.OWNER) {
+      const activeOwnerCount =
+        await this.memberRepository.countActiveOwners(orgId);
+
+      if (activeOwnerCount <= 1) {
+        throw new BadRequestException(
+          'Transfer ownership before leaving organization',
+        );
+      }
     }
 
     await this.memberRepository.updateMembership(membership.id, {

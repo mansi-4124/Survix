@@ -1,4 +1,3 @@
-import type { VerifyEmailDto } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -8,10 +7,17 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { useVerifyEmail } from "@/features/auth/hooks/useVerifyEmail";
+import { verifyEmailSchema } from "@/features/auth/validation/auth.schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
 import { motion } from "motion/react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "@/lib/toast";
+import type { z } from "zod";
+import { PageReveal } from "@/components/common/page-reveal";
+
+type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
 
 const VerifyEmailPage = () => {
   const [params] = useSearchParams();
@@ -19,45 +25,60 @@ const VerifyEmailPage = () => {
   const email = params.get("email") || "";
   const verifyEmail = useVerifyEmail();
 
-  const { handleSubmit, control, watch } = useForm<VerifyEmailDto>({
+  const {
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm<VerifyEmailFormValues>({
+    resolver: zodResolver(verifyEmailSchema),
     defaultValues: {
       otp: "",
     },
   });
   const otp = watch("otp");
-  const onSubmit = (data: VerifyEmailDto) => {
+  const onSubmit = (data: VerifyEmailFormValues) => {
     verifyEmail.mutate(
       { email, otp: data.otp },
-      { onSuccess: () => navigate("/onboard") },
+      {
+        onSuccess: () => {
+          toast.success("Email verified successfully.");
+          navigate("/app/onboarding");
+        },
+        onError: () => {
+          toast.error("Verification failed. Please check the OTP and retry.");
+        },
+      },
     );
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 8, repeat: Infinity }}
-        className="absolute top-20 left-20 w-96 h-96 bg-indigo-300 rounded-full blur-3xl"
-      />
-      <motion.div
-        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 10, repeat: Infinity }}
-        className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl"
-      />
+    <PageReveal asChild>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity }}
+          className="absolute top-20 left-20 w-96 h-96 bg-indigo-300 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl"
+        />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md relative z-10"
-      >
-        <Card className="p-8 shadow-2xl border-slate-200/50 backdrop-blur-xl bg-white/95">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Survix
-            </span>
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <Card className="p-8 shadow-2xl border-slate-200/50 backdrop-blur-xl bg-white/95">
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Survix
+              </span>
+            </div>
           <>
             <div className="text-center mb-8">
               <motion.div
@@ -104,6 +125,11 @@ const VerifyEmailPage = () => {
                     </div>
                   )}
                 ></Controller>
+                {errors.otp ? (
+                  <p className="text-xs text-red-600 text-center">
+                    {errors.otp.message}
+                  </p>
+                ) : null}
               </div>
 
               <motion.div
@@ -130,8 +156,9 @@ const VerifyEmailPage = () => {
             </form>
           </>
         </Card>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </PageReveal>
   );
 };
 

@@ -10,6 +10,9 @@ export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
     _context: ExecutionContext,
     _status?: unknown,
   ): TUser | null {
+    void _info;
+    void _context;
+    void _status;
     if (err) {
       return null;
     }

@@ -10,4 +10,3 @@ export class ChangeMemberRoleDtoRequest {
   @IsEnum(OrganizationRoleDomain)
   role: OrganizationRoleDomain;
 }
-

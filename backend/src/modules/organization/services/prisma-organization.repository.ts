@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { OrganizationMemberStatus, OrganizationRole } from '@prisma/client';
+import {
+  OrganizationAccountType,
+  OrganizationMemberStatus,
+  OrganizationRole,
+} from '@prisma/client';
 import {
   CreateOrganizationInput,
   IOrganizationMemberRepository,
@@ -23,6 +27,8 @@ export class PrismaOrganizationRepository
         name: input.name,
         slug: input.slug,
         ownerId: input.ownerId,
+        accountType: input.accountType ?? OrganizationAccountType.ORGANIZATION,
+        isPersonal: input.isPersonal ?? false,
         visibility: input.visibility,
         description: input.description,
         industry: input.industry,
@@ -122,8 +128,98 @@ export class PrismaOrganizationRepository
   ): Promise<OrganizationMemberDomain[]> {
     const members = await this.prisma.organizationMember.findMany({
       where: { organizationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
     });
     return members.map((m) => this.toMemberDomain(m));
+  }
+
+  async countActiveOwners(organizationId: string): Promise<number> {
+    return this.prisma.organizationMember.count({
+      where: {
+        organizationId,
+        role: OrganizationRole.OWNER,
+        status: OrganizationMemberStatus.ACTIVE,
+      },
+    });
+  }
+
+  async findUserByEmail(email: string): Promise<{
+    id: string;
+    email: string;
+    username?: string | null;
+    name?: string | null;
+    avatar?: string | null;
+  } | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        avatar: true,
+      },
+    });
+
+    return user;
+  }
+
+  async searchUsers(query: string): Promise<
+    Array<{
+      id: string;
+      email: string;
+      username?: string | null;
+      name?: string | null;
+      avatar?: string | null;
+    }>
+  > {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            email: {
+              contains: normalizedQuery,
+              mode: 'insensitive',
+            },
+          },
+          {
+            name: {
+              contains: normalizedQuery,
+              mode: 'insensitive',
+            },
+          },
+          {
+            username: {
+              contains: normalizedQuery,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        avatar: true,
+      },
+      take: 10,
+    });
   }
 
   async createOwnerMembership(
@@ -147,14 +243,16 @@ export class PrismaOrganizationRepository
     userId: string,
     role: OrganizationRoleDomain,
     invitedBy?: string,
+    status: OrganizationMemberStatus = OrganizationMemberStatus.ACTIVE,
   ): Promise<OrganizationMemberDomain> {
     const member = await this.prisma.organizationMember.create({
       data: {
         organizationId,
         userId,
         role: this.toPrismaRole(role),
-        status: OrganizationMemberStatus.ACTIVE,
-        joinedAt: new Date(),
+        status,
+        joinedAt:
+          status === OrganizationMemberStatus.ACTIVE ? new Date() : null,
         invitedBy,
       },
     });
@@ -193,6 +291,8 @@ export class PrismaOrganizationRepository
       slug: prismaOrg.slug,
       logoUrl: prismaOrg.logoUrl,
       ownerId: prismaOrg.ownerId,
+      accountType: prismaOrg.accountType,
+      isPersonal: prismaOrg.isPersonal,
       description: prismaOrg.description,
       industry: prismaOrg.industry,
       size: prismaOrg.size,
@@ -211,6 +311,15 @@ export class PrismaOrganizationRepository
       id: prismaMember.id,
       organizationId: prismaMember.organizationId,
       userId: prismaMember.userId,
+      user: prismaMember.user
+        ? {
+            id: prismaMember.user.id,
+            email: prismaMember.user.email,
+            username: prismaMember.user.username,
+            name: prismaMember.user.name,
+            avatar: prismaMember.user.avatar,
+          }
+        : undefined,
       role: this.toDomainRole(prismaMember.role),
       status: prismaMember.status,
       joinedAt: prismaMember.joinedAt,
@@ -228,10 +337,8 @@ export class PrismaOrganizationRepository
         return OrganizationRoleDomain.ADMIN;
       case OrganizationRole.MEMBER:
         return OrganizationRoleDomain.MEMBER;
-      default: {
-        const _exhaustive: never = role;
-        throw new Error(`Unhandled organization role: ${_exhaustive}`);
-      }
+      default:
+        throw new Error(`Unhandled organization role: ${String(role)}`);
     }
   }
 
@@ -243,10 +350,8 @@ export class PrismaOrganizationRepository
         return OrganizationRole.ADMIN;
       case OrganizationRoleDomain.MEMBER:
         return OrganizationRole.MEMBER;
-      default: {
-        const _exhaustive: never = role;
-        throw new Error(`Unhandled organization role domain: ${_exhaustive}`);
-      }
+      default:
+        throw new Error(`Unhandled organization role domain: ${String(role)}`);
     }
   }
 }

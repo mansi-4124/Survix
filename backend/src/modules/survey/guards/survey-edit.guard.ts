@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { SurveyRole, SurveyStatus } from '@prisma/client';
+import { OrganizationRole, SurveyRole, SurveyStatus } from '@prisma/client';
 
 @Injectable()
 export class SurveyEditGuard implements CanActivate {
@@ -12,6 +12,7 @@ export class SurveyEditGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const survey = request.survey;
     const membership = request.surveyMembership;
+    const organizationMembership = request.organizationMembership;
 
     if (!survey) {
       throw new ForbiddenException('Survey is not loaded');
@@ -21,13 +22,20 @@ export class SurveyEditGuard implements CanActivate {
       throw new ForbiddenException('Only draft surveys can be edited');
     }
 
-    if (!membership) {
-      throw new ForbiddenException('Survey membership required');
-    }
+    const canEditAsSurveyRole =
+      !!membership &&
+      (membership.role === SurveyRole.OWNER ||
+        membership.role === SurveyRole.ADMIN ||
+        membership.role === SurveyRole.EDITOR);
+    const canEditAsOrganizationRole =
+      !!organizationMembership &&
+      organizationMembership.status === 'ACTIVE' &&
+      (organizationMembership.role === OrganizationRole.OWNER ||
+        organizationMembership.role === OrganizationRole.ADMIN);
 
-    if (![SurveyRole.OWNER, SurveyRole.EDITOR].includes(membership.role)) {
+    if (!canEditAsSurveyRole && !canEditAsOrganizationRole) {
       throw new ForbiddenException(
-        'Only OWNER or EDITOR can edit this survey',
+        'Only survey OWNER/EDITOR or organization OWNER/ADMIN can edit this survey',
       );
     }
 

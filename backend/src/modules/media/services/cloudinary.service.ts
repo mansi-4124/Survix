@@ -9,14 +9,16 @@ type UploadedAsset = {
 
 @Injectable()
 export class CloudinaryService {
-  async uploadFile(file: UploadedFileType): Promise<UploadedAsset> {
+  uploadFile(file: UploadedFileType): Promise<UploadedAsset> {
     const publicId = randomUUID();
-    const baseUrl = process.env.CLOUDINARY_PUBLIC_BASE_URL ?? 'https://res.cloudinary.com/local';
+    const baseUrl =
+      process.env.CLOUDINARY_PUBLIC_BASE_URL ??
+      'https://res.cloudinary.com/local';
     const url = `${baseUrl}/${publicId}-${encodeURIComponent(file.originalname)}`;
 
-    return {
+    return Promise.resolve({
       url,
       publicId,
-    };
+    });
   }
 }

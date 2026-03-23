@@ -18,26 +18,35 @@ export class SurveyAccessTokenService {
     private readonly redis: Redis,
   ) {}
 
-  async createToken(surveyId: string, userId: string): Promise<string> {
+  async createToken(
+    surveyId: string,
+    userId: string,
+    expiresAt?: Date | null,
+  ): Promise<string> {
     const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + this.ttlSeconds * 1000).toISOString();
+    const now = Date.now();
+    const resolvedTtlSeconds =
+      expiresAt && !Number.isNaN(expiresAt.getTime())
+        ? Math.max(Math.ceil((expiresAt.getTime() - now) / 1000), 1)
+        : this.ttlSeconds;
+    const resolvedExpiresAt = new Date(
+      now + resolvedTtlSeconds * 1000,
+    ).toISOString();
 
     const payload: SurveyAccessTokenPayload = {
       surveyId,
       userId,
-      expiresAt,
+      expiresAt: resolvedExpiresAt,
     };
 
     await this.redis.set(this.getKey(token), JSON.stringify(payload), {
-      ex: this.ttlSeconds,
+      ex: resolvedTtlSeconds,
     });
 
     return token;
   }
 
-  async validateToken(
-    token: string,
-  ): Promise<SurveyAccessTokenPayload | null> {
+  async validateToken(token: string): Promise<SurveyAccessTokenPayload | null> {
     return this.redis.get<SurveyAccessTokenPayload>(this.getKey(token));
   }
 

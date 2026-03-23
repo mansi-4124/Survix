@@ -31,28 +31,28 @@ export class AuditInterceptor implements NestInterceptor {
         : Promise.resolve(null);
 
     return next.handle().pipe(
-      tap(async (result) => {
-        const before = await beforePromise;
-        const after =
-          isMutating && orgId
-            ? await this.organizationService
-                .getOrganizationDetailsForUser(orgId, user?.sub ?? '')
-                .catch(() => null)
-            : null;
+      tap((result) => {
+        void beforePromise.then(async (before) => {
+          const after =
+            isMutating && orgId
+              ? await this.organizationService
+                  .getOrganizationDetailsForUser(orgId, user?.sub ?? '')
+                  .catch(() => null)
+              : null;
 
-        this.logger.log(
-          JSON.stringify({
-            userId: user?.sub,
-            method,
-            url,
-            orgId,
-            before,
-            after,
-            result,
-          }),
-        );
+          this.logger.log(
+            JSON.stringify({
+              userId: user?.sub,
+              method,
+              url,
+              orgId,
+              before,
+              after,
+              result,
+            }),
+          );
+        });
       }),
     );
   }
 }
-

@@ -18,4 +18,3 @@ export class InviteMemberDtoRequest {
   @IsEnum(OrganizationRoleDomain)
   role: OrganizationRoleDomain;
 }
-

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrganizationStatus } from '@prisma/client';
+import { OrganizationAccountType, OrganizationStatus } from '@prisma/client';
 import { OrganizationRoleDomain } from '../../domain/enums/organization-role.enum';
 
 export class OrganizationSummaryDtoResponse {
@@ -27,4 +27,12 @@ export class OrganizationSummaryDtoResponse {
     enum: OrganizationStatus,
   })
   status: OrganizationStatus;
+
+  @ApiProperty({
+    enum: OrganizationAccountType,
+  })
+  accountType: OrganizationAccountType;
+
+  @ApiProperty()
+  isPersonal: boolean;
 }

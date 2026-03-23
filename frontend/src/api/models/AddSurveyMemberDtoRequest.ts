@@ -9,6 +9,7 @@ export type AddSurveyMemberDtoRequest = {
 export namespace AddSurveyMemberDtoRequest {
     export enum role {
         OWNER = 'OWNER',
+        ADMIN = 'ADMIN',
         EDITOR = 'EDITOR',
         ANALYST = 'ANALYST',
         VIEWER = 'VIEWER',

@@ -14,6 +14,8 @@ import { SurveyModule } from './modules/survey/survey.module';
 import { ResponseModule } from './modules/response/response.module';
 import { MediaModule } from './modules/media/media.module';
 import { AnonymousIdMiddleware } from './common/middleware/anonymous-id.middleware';
+import { PollModule } from './modules/poll/poll.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { AnonymousIdMiddleware } from './common/middleware/anonymous-id.middlewa
       isGlobal: true,
       validationSchema,
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
     EmailModule,
@@ -29,6 +32,7 @@ import { AnonymousIdMiddleware } from './common/middleware/anonymous-id.middlewa
     SurveyModule,
     ResponseModule,
     MediaModule,
+    PollModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -43,6 +47,8 @@ export class AppModule implements NestModule {
         'auth/login',
         'auth/signup',
         'auth/verify-email',
+        'auth/refresh',
+        'auth/logout',
         'auth/forgot-password',
         'auth/reset-password',
         'auth/google',
@@ -50,6 +56,10 @@ export class AppModule implements NestModule {
 
     consumer
       .apply(AnonymousIdMiddleware)
-      .forRoutes('surveys/:surveyId/responses/start', 'responses/:responseId/*');
+      .forRoutes(
+        'surveys/:surveyId/responses/start',
+        'responses/:responseId/*path',
+        'polls/:pollId/votes',
+      );
   }
 }

@@ -87,8 +87,9 @@ export class AuthService {
         failedLoginAttempts: 0,
         lockUntil: null,
       });
-    } catch (error) {
-      const persistedUser = await this.userRepository.findByEmail(normalizedEmail);
+    } catch {
+      const persistedUser =
+        await this.userRepository.findByEmail(normalizedEmail);
       if (persistedUser && persistedUser.status !== AccountStatus.ACTIVE) {
         const otp = await this.otpService.generateOtp(normalizedEmail);
         await this.emailService.sendOtp(normalizedEmail, otp);
@@ -226,7 +227,7 @@ export class AuthService {
 
     const rawToken = randomUUID();
     await this.passwordResetService.storeResetToken(user.id, rawToken);
-    await this.emailService.sendPasswordReset(email, rawToken);
+    await this.emailService.sendPasswordReset(email, user.id, rawToken);
   }
 
   /*

@@ -19,15 +19,19 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { OrganizationMemberGuard } from '../organization/guards/organization-member.guard';
 import { AddSurveyMemberDtoRequest } from './dto/request/add-survey-member.dto.request';
 import { CreateQuestionDtoRequest } from './dto/request/create-question.dto.request';
+import { CreateSurveyPageDtoRequest } from './dto/request/create-survey-page.dto.request';
 import { CreateSurveyDtoRequest } from './dto/request/create-survey.dto.request';
 import { MoveQuestionDtoRequest } from './dto/request/move-question.dto.request';
 import { ReorderQuestionsDtoRequest } from './dto/request/reorder-questions.dto.request';
 import { UpdateQuestionDtoRequest } from './dto/request/update-question.dto.request';
+import { UpdateSurveyPageDtoRequest } from './dto/request/update-survey-page.dto.request';
 import { UpdateSurveyDtoRequest } from './dto/request/update-survey.dto.request';
 import { CreateSurveyDtoResponse } from './dto/response/create-survey.dto.response';
 import { PublicSurveyDtoResponse } from './dto/response/public-survey.dto.response';
 import { RevisionDtoResponse } from './dto/response/revision.dto.response';
+import { SurveyMemberDtoResponse } from './dto/response/survey-member.dto.response';
 import { SurveyQuestionDtoResponse } from './dto/response/survey-question.dto.response';
+import { SurveySummaryDtoResponse } from './dto/response/survey-summary.dto.response';
 import { SurveyAccessGuard } from './guards/survey-access.guard';
 import { SurveyEditGuard } from './guards/survey-edit.guard';
 import { QuestionSettingsValidationPipe } from './pipes/question-settings-validation.pipe';
@@ -47,6 +51,14 @@ export class SurveyController {
     @CurrentUser() user: TokenPayload,
   ): Promise<CreateSurveyDtoResponse> {
     return this.surveyService.createSurvey(user.sub, dto);
+  }
+
+  @Get('surveys/my')
+  @UseGuards(JwtAuthGuard)
+  async getMySurveys(
+    @CurrentUser() user: TokenPayload,
+  ): Promise<SurveySummaryDtoResponse[]> {
+    return this.surveyService.getMySurveys(user.sub);
   }
 
   @Patch('surveys/:surveyId')
@@ -128,6 +140,25 @@ export class SurveyController {
     );
   }
 
+  @Post('surveys/:surveyId/pages')
+  @UseGuards(JwtAuthGuard, SurveyAccessGuard, SurveyEditGuard)
+  async createPage(
+    @Param('surveyId', ParseObjectIdPipe) surveyId: string,
+    @CurrentUser() user: TokenPayload,
+    @Body() dto: CreateSurveyPageDtoRequest,
+  ): Promise<{ id: string; order: number }> {
+    return this.surveyService.createPage(surveyId, user.sub, dto);
+  }
+
+  @Get('surveys/:surveyId/members')
+  @UseGuards(JwtAuthGuard, SurveyAccessGuard)
+  async listMembers(
+    @Param('surveyId', ParseObjectIdPipe) surveyId: string,
+    @CurrentUser() user: TokenPayload,
+  ): Promise<SurveyMemberDtoResponse[]> {
+    return this.surveyService.listMembers(surveyId, user.sub);
+  }
+
   @Delete('surveys/:surveyId/members/:userId')
   @UseGuards(JwtAuthGuard, SurveyAccessGuard)
   async removeMember(
@@ -163,6 +194,23 @@ export class SurveyController {
     @Param('questionId', ParseObjectIdPipe) questionId: string,
   ): Promise<void> {
     await this.surveyService.deleteQuestion(questionId);
+  }
+
+  @Patch('pages/:pageId')
+  @UseGuards(JwtAuthGuard, SurveyAccessGuard, SurveyEditGuard)
+  async updatePage(
+    @Param('pageId', ParseObjectIdPipe) pageId: string,
+    @Body() dto: UpdateSurveyPageDtoRequest,
+  ) {
+    return this.surveyService.updatePage(pageId, dto);
+  }
+
+  @Delete('pages/:pageId')
+  @UseGuards(JwtAuthGuard, SurveyAccessGuard, SurveyEditGuard)
+  async deletePage(
+    @Param('pageId', ParseObjectIdPipe) pageId: string,
+  ): Promise<void> {
+    await this.surveyService.deletePage(pageId);
   }
 
   @Post('pages/:pageId/questions/reorder')

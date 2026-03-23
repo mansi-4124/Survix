@@ -10,6 +10,7 @@ import type { OrganizationDetailsDtoResponse } from '../models/OrganizationDetai
 import type { OrganizationDtoResponse } from '../models/OrganizationDtoResponse';
 import type { OrganizationMemberDtoResponse } from '../models/OrganizationMemberDtoResponse';
 import type { OrganizationSummaryDtoResponse } from '../models/OrganizationSummaryDtoResponse';
+import type { OrganizationUserSearchDtoResponse } from '../models/OrganizationUserSearchDtoResponse';
 import type { TransferOwnershipDtoRequest } from '../models/TransferOwnershipDtoRequest';
 import type { UpdateOrganizationDtoRequest } from '../models/UpdateOrganizationDtoRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -41,6 +42,17 @@ export class OrganizationsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/organizations',
+        });
+    }
+    /**
+     * Create personal workspace
+     * @returns OrganizationSummaryDtoResponse
+     * @throws ApiError
+     */
+    public static organizationControllerCreatePersonalWorkspace(): CancelablePromise<OrganizationSummaryDtoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/organizations/personal',
         });
     }
     /**
@@ -271,6 +283,28 @@ export class OrganizationsService {
             url: '/organizations/{orgId}/members',
             path: {
                 'orgId': orgId,
+            },
+        });
+    }
+    /**
+     * Search existing users for invitation
+     * @param orgId
+     * @param query
+     * @returns OrganizationUserSearchDtoResponse
+     * @throws ApiError
+     */
+    public static organizationControllerSearchUsers(
+        orgId: string,
+        query: string,
+    ): CancelablePromise<Array<OrganizationUserSearchDtoResponse>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/{orgId}/users/search',
+            path: {
+                'orgId': orgId,
+            },
+            query: {
+                'query': query,
             },
         });
     }

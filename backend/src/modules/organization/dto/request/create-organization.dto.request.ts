@@ -72,4 +72,3 @@ export class CreateOrganizationDtoRequest {
   @Transform(({ value }) => value?.toLowerCase().trim())
   contactEmail?: string;
 }
-

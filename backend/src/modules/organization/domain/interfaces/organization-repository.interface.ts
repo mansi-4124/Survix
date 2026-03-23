@@ -1,4 +1,5 @@
 import {
+  OrganizationAccountType,
   OrganizationStatus,
   OrganizationVisibility,
   OrganizationMemberStatus,
@@ -11,6 +12,8 @@ export type CreateOrganizationInput = {
   name: string;
   slug: string;
   ownerId: string;
+  accountType?: OrganizationAccountType;
+  isPersonal?: boolean;
   visibility: OrganizationVisibility;
   description?: string;
   industry?: string;
@@ -20,10 +23,7 @@ export type CreateOrganizationInput = {
 };
 
 export type UpdateOrganizationInput = Partial<
-  Omit<
-    CreateOrganizationInput,
-    'ownerId' | 'slug'
-  > & {
+  Omit<CreateOrganizationInput, 'ownerId' | 'slug'> & {
     status?: OrganizationStatus;
     deletedAt?: Date | null;
   }
@@ -39,7 +39,10 @@ export interface IOrganizationRepository {
       membership: OrganizationMemberDomain;
     }>
   >;
-  update(id: string, input: UpdateOrganizationInput): Promise<OrganizationDomain>;
+  update(
+    id: string,
+    input: UpdateOrganizationInput,
+  ): Promise<OrganizationDomain>;
 }
 
 export interface IOrganizationMemberRepository {
@@ -49,6 +52,26 @@ export interface IOrganizationMemberRepository {
   ): Promise<OrganizationMemberDomain | null>;
 
   listMembers(organizationId: string): Promise<OrganizationMemberDomain[]>;
+
+  countActiveOwners(organizationId: string): Promise<number>;
+
+  findUserByEmail(email: string): Promise<{
+    id: string;
+    email: string;
+    username?: string | null;
+    name?: string | null;
+    avatar?: string | null;
+  } | null>;
+
+  searchUsers(query: string): Promise<
+    Array<{
+      id: string;
+      email: string;
+      username?: string | null;
+      name?: string | null;
+      avatar?: string | null;
+    }>
+  >;
 
   createOwnerMembership(
     organizationId: string,
@@ -60,6 +83,7 @@ export interface IOrganizationMemberRepository {
     userId: string,
     role: OrganizationRoleDomain,
     invitedBy?: string,
+    status?: OrganizationMemberStatus,
   ): Promise<OrganizationMemberDomain>;
 
   updateMembership(
@@ -74,4 +98,3 @@ export interface IOrganizationMemberRepository {
     }>,
   ): Promise<OrganizationMemberDomain>;
 }
-

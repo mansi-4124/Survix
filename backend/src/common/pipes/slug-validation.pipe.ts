@@ -22,4 +22,3 @@ export class SlugValidationPipe implements PipeTransform<any, any> {
     };
   }
 }
-

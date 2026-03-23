@@ -7,4 +7,3 @@ import { EmailSenderService } from './email.service';
   exports: [EmailSenderService],
 })
 export class EmailModule {}
-

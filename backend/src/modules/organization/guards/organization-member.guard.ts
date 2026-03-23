@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { OrganizationMemberStatus } from '@prisma/client';
 import { OrganizationService } from '../services/organization.service';
 
 @Injectable()
@@ -35,7 +36,7 @@ export class OrganizationMemberGuard implements CanActivate {
       user.sub,
     );
 
-    if (!membership) {
+    if (!membership || membership.status !== OrganizationMemberStatus.ACTIVE) {
       throw new ForbiddenException('User is not a member of this organization');
     }
 

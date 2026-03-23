@@ -8,6 +8,8 @@ export type OrganizationSummaryDtoResponse = {
     slug: string;
     role: OrganizationSummaryDtoResponse.role;
     status: OrganizationSummaryDtoResponse.status;
+    accountType: OrganizationSummaryDtoResponse.accountType;
+    isPersonal: boolean;
 };
 export namespace OrganizationSummaryDtoResponse {
     export enum role {
@@ -19,6 +21,10 @@ export namespace OrganizationSummaryDtoResponse {
         ACTIVE = 'ACTIVE',
         ARCHIVED = 'ARCHIVED',
         SUSPENDED = 'SUSPENDED',
+    }
+    export enum accountType {
+        PERSONAL = 'PERSONAL',
+        ORGANIZATION = 'ORGANIZATION',
     }
 }
 

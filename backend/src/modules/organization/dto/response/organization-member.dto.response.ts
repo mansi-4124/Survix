@@ -2,6 +2,23 @@ import { ApiProperty } from '@nestjs/swagger';
 import { OrganizationMemberStatus } from '@prisma/client';
 import { OrganizationRoleDomain } from '../../domain/enums/organization-role.enum';
 
+class OrganizationMemberUserDtoResponse {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty({ required: false })
+  username?: string | null;
+
+  @ApiProperty({ required: false })
+  name?: string | null;
+
+  @ApiProperty({ required: false })
+  avatar?: string | null;
+}
+
 export class OrganizationMemberDtoResponse {
   @ApiProperty()
   id: string;
@@ -23,5 +40,7 @@ export class OrganizationMemberDtoResponse {
 
   @ApiProperty({ required: false })
   leftAt?: Date | null;
-}
 
+  @ApiProperty({ required: false, type: OrganizationMemberUserDtoResponse })
+  user?: OrganizationMemberUserDtoResponse;
+}

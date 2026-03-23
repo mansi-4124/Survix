@@ -7,7 +7,11 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SurveyVisibility } from '@prisma/client';
+import {
+  OrganizationRole,
+  SurveyStatus,
+  SurveyVisibility,
+} from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { TokenPayload } from 'src/modules/auth/domain/types/token-payload.type';
 import { SurveyAccessTypeDomain } from '../domain/enums/survey-access-type.enum';
@@ -36,7 +40,7 @@ export class SurveyAccessGuard implements CanActivate {
     const survey = await this.prisma.survey.findFirst({
       where: {
         id: surveyId,
-        deletedAt: null,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       },
       include: {
         members: currentUserId
@@ -54,53 +58,96 @@ export class SurveyAccessGuard implements CanActivate {
       throw new NotFoundException('Survey not found');
     }
 
-    const membership = Array.isArray(survey.members) ? (survey.members[0] ?? null) : null;
+    const membership = Array.isArray(survey.members)
+      ? (survey.members[0] ?? null)
+      : null;
+    const isOwner = Boolean(
+      currentUserId && survey.ownerUserId === currentUserId,
+    );
+    const organizationMembership =
+      currentUserId && survey.organizationId
+        ? await this.prisma.organizationMember.findUnique({
+            where: {
+              organizationId_userId: {
+                organizationId: survey.organizationId,
+                userId: currentUserId,
+              },
+            },
+          })
+        : null;
 
-    if (survey.visibility === SurveyVisibility.PUBLIC) {
-      if (!survey.allowAnonymous && !currentUserId) {
-        throw new UnauthorizedException('Authentication required for this survey');
+    const isOrgAdmin =
+      organizationMembership &&
+      organizationMembership.status === 'ACTIVE' &&
+      (organizationMembership.role === OrganizationRole.OWNER ||
+        organizationMembership.role === OrganizationRole.ADMIN);
+
+    const now = new Date();
+    const accessToken = request.query?.token as string | undefined;
+
+    if (accessToken) {
+      if (survey.status !== SurveyStatus.PUBLISHED) {
+        throw new ForbiddenException('Survey is not published');
+      }
+      if (survey.endDate && survey.endDate <= now) {
+        throw new ForbiddenException('Survey has ended');
+      }
+
+      const tokenPayload =
+        await this.surveyAccessTokenService.validateToken(accessToken);
+
+      if (!tokenPayload || tokenPayload.surveyId !== survey.id) {
+        throw new ForbiddenException('Invalid survey access token');
+      }
+
+      if (!currentUserId) {
+        throw new ForbiddenException(
+          'Private surveys do not allow anonymous access',
+        );
+      }
+
+      if (tokenPayload.userId !== currentUserId) {
+        throw new ForbiddenException('Survey token does not belong to this user');
       }
 
       request.survey = survey;
       request.surveyMembership = membership;
-      request.surveyAccessType = SurveyAccessTypeDomain.PUBLIC;
+      request.organizationMembership = organizationMembership;
+      request.surveyAccessType = SurveyAccessTypeDomain.TOKEN;
       return true;
     }
 
-    if (membership) {
+    if (membership || isOwner || isOrgAdmin) {
       request.survey = survey;
       request.surveyMembership = membership;
+      request.organizationMembership = organizationMembership;
       request.surveyAccessType = SurveyAccessTypeDomain.MEMBER;
       return true;
     }
 
-    const accessToken = request.query?.token as string | undefined;
-    if (!accessToken) {
-      throw new ForbiddenException('Access denied for private survey');
+    if (survey.visibility === SurveyVisibility.PUBLIC) {
+      // Public surveys are only accessible once published for non-members.
+      if (survey.status !== SurveyStatus.PUBLISHED) {
+        throw new ForbiddenException('Survey is not published');
+      }
+      if (survey.endDate && survey.endDate <= now) {
+        throw new ForbiddenException('Survey has ended');
+      }
+
+      if (!survey.allowAnonymous && !currentUserId) {
+        throw new UnauthorizedException(
+          'Authentication required for this survey',
+        );
+      }
+
+      request.survey = survey;
+      request.surveyMembership = membership;
+      request.organizationMembership = organizationMembership;
+      request.surveyAccessType = SurveyAccessTypeDomain.PUBLIC;
+      return true;
     }
 
-    const tokenPayload =
-      await this.surveyAccessTokenService.validateToken(accessToken);
-
-    if (!tokenPayload || tokenPayload.surveyId !== survey.id) {
-      throw new ForbiddenException('Invalid survey access token');
-    }
-
-    if (!currentUserId) {
-      throw new ForbiddenException(
-        'Private surveys do not allow anonymous access',
-      );
-    }
-
-    if (tokenPayload.userId !== currentUserId) {
-      throw new ForbiddenException('Survey token does not belong to this user');
-    }
-
-    request.survey = survey;
-    request.surveyMembership = membership;
-    request.surveyAccessType = SurveyAccessTypeDomain.TOKEN;
-
-    return true;
+    throw new ForbiddenException('Access denied for private survey');
   }
 
   private async resolveSurveyId(

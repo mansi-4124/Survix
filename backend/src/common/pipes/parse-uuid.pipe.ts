@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  PipeTransform,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 @Injectable()
 export class ParseUUIDPipe implements PipeTransform<string, string> {

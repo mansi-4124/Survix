@@ -31,7 +31,10 @@ export class ResponseAccessGuard implements CanActivate {
     }
 
     if (!user?.sub) {
-      if (!responseEntity.anonymousId || responseEntity.anonymousId !== request.anonymousId) {
+      if (
+        !responseEntity.anonymousId ||
+        responseEntity.anonymousId !== request.anonymousId
+      ) {
         throw new ForbiddenException('Response access denied');
       }
     } else {

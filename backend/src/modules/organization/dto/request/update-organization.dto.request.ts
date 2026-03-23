@@ -62,4 +62,3 @@ export class UpdateOrganizationDtoRequest {
   @IsEnum(OrganizationVisibility)
   visibility?: OrganizationVisibility;
 }
-

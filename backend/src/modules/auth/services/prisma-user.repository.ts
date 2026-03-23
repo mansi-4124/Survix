@@ -129,7 +129,21 @@ export class PrismaUserRepository implements IUserRepository {
   MAPPER
   =====================================================
   */
-  private toDomain(prismaUser: any): AuthUser {
+  private toDomain(prismaUser: {
+    id: string;
+    email: string;
+    username: string | null;
+    name: string | null;
+    avatar: string | null;
+    passwordHash: string | null;
+    status: PrismaUserStatus;
+    authType: PrismaAuthType;
+    emailVerified: boolean | null;
+    failedLoginAttempts: number;
+    lockUntil: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AuthUser {
     return {
       id: prismaUser.id,
       email: prismaUser.email,
@@ -164,10 +178,8 @@ export class PrismaUserRepository implements IUserRepository {
       case PrismaAuthType.BOTH:
         return AuthProvider.BOTH;
 
-      default: {
-        const _exhaustiveCheck: never = authType;
-        throw new Error(`Unhandled authType: ${_exhaustiveCheck}`);
-      }
+      default:
+        throw new Error(`Unhandled authType: ${String(authType)}`);
     }
   }
 
@@ -182,10 +194,8 @@ export class PrismaUserRepository implements IUserRepository {
       case AuthProvider.BOTH:
         return PrismaAuthType.BOTH;
 
-      default: {
-        const _exhaustiveCheck: never = provider;
-        throw new Error(`Unhandled provider: ${_exhaustiveCheck}`);
-      }
+      default:
+        throw new Error(`Unhandled provider: ${String(provider)}`);
     }
   }
 }

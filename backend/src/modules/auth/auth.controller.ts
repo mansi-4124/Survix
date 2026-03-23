@@ -113,6 +113,7 @@ export class AuthController {
   LOGOUT
   =====================================================
   */
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout and invalidate session' })
@@ -121,7 +122,13 @@ export class AuthController {
 
     await this.authService.logout(refreshToken);
 
-    res.clearCookie('refreshToken');
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+    });
 
     return { message: 'Logged out successfully' };
   }
@@ -188,11 +195,12 @@ export class AuthController {
   =====================================================
   */
   private setRefreshCookie(res: Response, token: string) {
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('refreshToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/auth',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     });
   }
@@ -206,6 +214,9 @@ export class AuthController {
       refreshTokenExpiresIn: number;
     };
   }): AuthResponseDto {
+    const exposeRefreshTokenInBody =
+      process.env.EXPOSE_REFRESH_TOKEN_IN_BODY === 'true';
+
     return {
       user: {
         id: result.user.id,
@@ -216,7 +227,9 @@ export class AuthController {
       },
       tokens: {
         accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
+        ...(exposeRefreshTokenInBody
+          ? { refreshToken: result.tokens.refreshToken }
+          : {}),
         accessTokenExpiresIn: result.tokens.accessTokenExpiresIn,
         refreshTokenExpiresIn: result.tokens.refreshTokenExpiresIn,
       },

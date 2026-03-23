@@ -16,7 +16,7 @@ export class ResponseService {
     const survey = await this.prisma.survey.findFirst({
       where: {
         id: surveyId,
-        deletedAt: null,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       },
     });
 
@@ -28,13 +28,7 @@ export class ResponseService {
       throw new BadRequestException('Survey is not published');
     }
 
-    const now = new Date();
-    if (survey.startDate && now < survey.startDate) {
-      throw new BadRequestException('Survey has not started yet');
-    }
-    if (survey.endDate && now > survey.endDate) {
-      throw new BadRequestException('Survey has ended');
-    }
+    this.assertSurveyOpenWindow(survey.startDate, survey.endDate);
 
     if (userId) {
       const inProgress = await this.prisma.response.findFirst({
@@ -65,11 +59,17 @@ export class ResponseService {
       }
     }
 
+    if (!userId && !anonymousId) {
+      // Anonymous access relies on a stable server-issued identifier (cookie).
+      // Without it we can't reliably authorize subsequent updates/submission.
+      throw new BadRequestException('Anonymous identifier is missing');
+    }
+
     const response = await this.prisma.response.create({
       data: {
         surveyId,
         userId: userId ?? null,
-        anonymousId: userId ? null : anonymousId,
+        anonymousId: userId ? null : (anonymousId ?? null),
         status: ResponseStatus.PARTIAL,
       },
     });
@@ -92,14 +92,17 @@ export class ResponseService {
     }
 
     if (response.status !== ResponseStatus.PARTIAL) {
-      throw new BadRequestException('Cannot update answers for submitted response');
+      throw new BadRequestException(
+        'Cannot update answers for submitted response',
+      );
     }
 
     const questionIds = dto.answers.map((answer) => answer.questionId);
+    const uniqueQuestionIds = Array.from(new Set(questionIds));
     const matchedQuestions = await this.prisma.question.findMany({
       where: {
         id: {
-          in: questionIds,
+          in: uniqueQuestionIds,
         },
         page: {
           surveyId: response.surveyId,
@@ -108,8 +111,10 @@ export class ResponseService {
       select: { id: true },
     });
 
-    if (matchedQuestions.length !== questionIds.length) {
-      throw new BadRequestException('One or more questions do not belong to survey');
+    if (matchedQuestions.length !== uniqueQuestionIds.length) {
+      throw new BadRequestException(
+        'One or more questions do not belong to survey',
+      );
     }
 
     await this.prisma.$transaction(
@@ -147,12 +152,19 @@ export class ResponseService {
     }
 
     if (response.status !== ResponseStatus.PARTIAL) {
-      throw new BadRequestException('Only in-progress responses can be submitted');
+      throw new BadRequestException(
+        'Only in-progress responses can be submitted',
+      );
     }
 
     if (response.survey.status !== SurveyStatus.PUBLISHED) {
       throw new BadRequestException('Survey is not published');
     }
+
+    this.assertSurveyOpenWindow(
+      response.survey.startDate,
+      response.survey.endDate,
+    );
 
     const completionTime = Math.max(
       0,
@@ -184,6 +196,11 @@ export class ResponseService {
     if (response.survey.status !== SurveyStatus.PUBLISHED) {
       throw new BadRequestException('Survey is not published');
     }
+
+    this.assertSurveyOpenWindow(
+      response.survey.startDate,
+      response.survey.endDate,
+    );
 
     if (!response.userId || response.userId !== userId) {
       throw new ForbiddenException('Only response owner can reopen');
@@ -227,5 +244,18 @@ export class ResponseService {
     await this.prisma.response.delete({
       where: { id: responseId },
     });
+  }
+
+  private assertSurveyOpenWindow(
+    startDate: Date | null,
+    endDate: Date | null,
+  ): void {
+    const now = new Date();
+    if (startDate && now < startDate) {
+      throw new BadRequestException('Survey has not started yet');
+    }
+    if (endDate && now > endDate) {
+      throw new BadRequestException('Survey has ended');
+    }
   }
 }

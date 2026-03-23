@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { OrganizationMemberStatus } from '@prisma/client';
 import { ORGANIZATION_ROLES_KEY } from '../decorators/organization-roles.decorator';
 import { OrganizationRoleDomain } from '../domain/enums/organization-role.enum';
 import { OrganizationMemberDomain } from '../domain/types/organization-member.type';
@@ -14,11 +15,9 @@ export class OrganizationRoleGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles =
-      this.reflector.getAllAndOverride<OrganizationRoleDomain[]>(
-        ORGANIZATION_ROLES_KEY,
-        [context.getHandler(), context.getClass()],
-      );
+    const requiredRoles = this.reflector.getAllAndOverride<
+      OrganizationRoleDomain[]
+    >(ORGANIZATION_ROLES_KEY, [context.getHandler(), context.getClass()]);
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
@@ -33,6 +32,10 @@ export class OrganizationRoleGuard implements CanActivate {
       throw new ForbiddenException('Membership context not found');
     }
 
+    if (membership.status !== OrganizationMemberStatus.ACTIVE) {
+      throw new ForbiddenException('Inactive organization membership');
+    }
+
     if (!requiredRoles.includes(membership.role)) {
       throw new ForbiddenException('Insufficient organization role');
     }
@@ -40,4 +43,3 @@ export class OrganizationRoleGuard implements CanActivate {
     return true;
   }
 }
-

@@ -9,4 +9,3 @@ export class GoogleLoginDto {
   @IsNotEmpty()
   googleToken: string;
 }
-

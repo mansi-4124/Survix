@@ -3,4 +3,3 @@ export enum OrganizationRoleDomain {
   ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
 }
-

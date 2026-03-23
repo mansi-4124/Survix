@@ -5,8 +5,6 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
-import { PrismaService } from 'prisma/prisma.service';
-
 import { PrismaUserRepository } from './services/prisma-user.repository';
 import { HashingService } from './services/hashing.service';
 import { TokenService } from './services/token.service';

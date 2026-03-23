@@ -9,7 +9,7 @@ export const useRefresh = () => {
     mutationFn: authApi.refresh,
     onSuccess: (data) => {
       const { user, tokens } = data;
-      setAuth(user, tokens.accessToken);
+      setAuth(user, tokens?.accessToken);
     },
   });
 };

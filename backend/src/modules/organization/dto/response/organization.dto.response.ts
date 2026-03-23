@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  OrganizationAccountType,
   OrganizationStatus,
   OrganizationVisibility,
   OrganizationMemberStatus,
@@ -21,6 +22,12 @@ export class OrganizationDtoResponse {
 
   @ApiProperty()
   ownerId: string;
+
+  @ApiProperty({ enum: OrganizationAccountType })
+  accountType: OrganizationAccountType;
+
+  @ApiProperty()
+  isPersonal: boolean;
 
   @ApiProperty({ required: false })
   description?: string | null;

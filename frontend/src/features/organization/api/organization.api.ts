@@ -6,6 +6,7 @@ import type {
   OrganizationDetailsDtoResponse,
   OrganizationMemberDtoResponse,
   OrganizationSummaryDtoResponse,
+  OrganizationUserSearchDtoResponse,
   TransferOwnershipDtoRequest,
   UpdateOrganizationDtoRequest,
 } from "@/api";
@@ -21,6 +22,11 @@ export const organizationApi = {
   getMyOrganizations: async () =>
     unwrapApiResponse<OrganizationSummaryDtoResponse[]>(
       await OrganizationsService.organizationControllerGetMyOrganizations(),
+    ),
+
+  createPersonalWorkspace: async () =>
+    unwrapApiResponse<OrganizationSummaryDtoResponse>(
+      await OrganizationsService.organizationControllerCreatePersonalWorkspace(),
     ),
 
   getOrganizationDetails: async (orgId: string) =>
@@ -102,5 +108,10 @@ export const organizationApi = {
   listMembers: async (orgId: string) =>
     unwrapApiResponse<OrganizationMemberDtoResponse[]>(
       await OrganizationsService.organizationControllerListMembers(orgId),
+    ),
+
+  searchUsers: async (orgId: string, query: string) =>
+    unwrapApiResponse<OrganizationUserSearchDtoResponse[]>(
+      await OrganizationsService.organizationControllerSearchUsers(orgId, query),
     ),
 };

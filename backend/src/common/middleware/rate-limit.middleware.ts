@@ -1,5 +1,6 @@
 import {
-  BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NestMiddleware,
 } from '@nestjs/common';
@@ -34,7 +35,14 @@ export class RateLimitMiddleware implements NestMiddleware {
 
     const ttl = this.options.windowSeconds;
 
-    const current = await this.redis.incr(key);
+    let current: number;
+    try {
+      current = await this.redis.incr(key);
+    } catch {
+      // If Redis is unavailable, skip rate limiting to avoid blocking auth flows.
+      next();
+      return;
+    }
 
     if (current === 1) {
       await this.redis.expire(key, ttl);
@@ -47,8 +55,9 @@ export class RateLimitMiddleware implements NestMiddleware {
     );
 
     if (current > this.options.maxRequests) {
-      throw new BadRequestException(
+      throw new HttpException(
         'Too many requests, please try again later',
+        HttpStatus.TOO_MANY_REQUESTS,
       );
     }
 

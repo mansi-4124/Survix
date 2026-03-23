@@ -9,7 +9,7 @@ export const useLogin = () => {
     mutationFn: authApi.login,
     onSuccess: (data) => {
       const { user, tokens } = data;
-      setAuth(user, tokens.accessToken);
+      setAuth(user, tokens?.accessToken);
     },
   });
 };

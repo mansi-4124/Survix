@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -37,10 +38,12 @@ import { AcceptInviteDtoRequest } from './dto/request/accept-invite.dto.request'
 import { TransferOwnershipDtoRequest } from './dto/request/transfer-ownership.dto.request';
 import { ChangeMemberRoleDtoRequest } from './dto/request/change-member-role.dto.request';
 import { OrganizationMemberDtoResponse } from './dto/response/organization-member.dto.response';
+import { OrganizationUserSearchDtoResponse } from './dto/response/organization-user-search.dto.response';
 import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CurrentOrganizationMembership } from './decorators/current-organization-membership.decorator';
 import type { OrganizationMemberDomain } from './domain/types/organization-member.type';
+import { SearchUsersDtoRequest } from './dto/request/search-users.dto.request';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -62,7 +65,7 @@ export class OrganizationController {
   async createOrganization(
     @Body(SlugValidationPipe) dto: CreateOrganizationDtoRequest,
     // user is TokenPayload from JwtStrategy
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     @CurrentUser() user: { sub: string },
   ): Promise<OrganizationSummaryDtoResponse> {
     // user id is injected via JwtAuthGuard / JwtStrategy on request.user
@@ -80,6 +83,32 @@ export class OrganizationController {
       slug: organization.slug,
       role: membership.role,
       status: organization.status,
+      accountType: organization.accountType,
+      isPersonal: organization.isPersonal,
+    };
+  }
+
+  @Post('personal')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create personal workspace' })
+  @ApiResponse({ status: 201, type: OrganizationSummaryDtoResponse })
+  async createPersonalWorkspace(
+    @CurrentUser() user: { sub: string; email: string },
+  ): Promise<OrganizationSummaryDtoResponse> {
+    const { organization, membership } =
+      await this.organizationService.createPersonalWorkspace(
+        user.sub,
+        user.email,
+      );
+
+    return {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      role: membership.role,
+      status: organization.status,
+      accountType: organization.accountType,
+      isPersonal: organization.isPersonal,
     };
   }
 
@@ -92,7 +121,7 @@ export class OrganizationController {
   @ApiOperation({ summary: 'Get organizations for current user' })
   @ApiResponse({ status: 200, type: [OrganizationSummaryDtoResponse] })
   async getMyOrganizations(
-    @CurrentUser() user: { sub: string }, // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @CurrentUser() user: { sub: string },
   ): Promise<OrganizationSummaryDtoResponse[]> {
     const items = await this.organizationService.getMyOrganizations(user.sub);
 
@@ -102,6 +131,8 @@ export class OrganizationController {
       slug: organization.slug,
       role: membership.role,
       status: organization.status,
+      accountType: organization.accountType,
+      isPersonal: organization.isPersonal,
     }));
   }
 
@@ -117,7 +148,6 @@ export class OrganizationController {
   async getOrganizationDetails(
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @CurrentUser() user: { sub: string },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<OrganizationDetailsDtoResponse> {
     const { organization, membership } =
       await this.organizationService.getOrganizationDetailsForUser(
@@ -132,6 +162,8 @@ export class OrganizationController {
         slug: organization.slug,
         logoUrl: organization.logoUrl,
         ownerId: organization.ownerId,
+        accountType: organization.accountType,
+        isPersonal: organization.isPersonal,
         description: organization.description,
         industry: organization.industry,
         size: organization.size,
@@ -174,6 +206,8 @@ export class OrganizationController {
       contactEmail: updated.contactEmail,
       visibility: updated.visibility,
       status: updated.status,
+      accountType: updated.accountType,
+      isPersonal: updated.isPersonal,
     };
   }
 
@@ -205,7 +239,6 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Body() dto: TransferOwnershipDtoRequest,
     @CurrentUser() user: { sub: string },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.transferOwnership(
       orgId,
@@ -228,7 +261,6 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Body() dto: InviteMemberDtoRequest,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ message: string; expiresInDays: number }> {
     await this.organizationService.inviteMember(
       orgId,
@@ -249,17 +281,15 @@ export class OrganizationController {
   =====================================================
   */
   @Post('accept-invite')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Accept organization invite' })
   async acceptInvite(
     @Body() dto: AcceptInviteDtoRequest,
     @CurrentUser() user: { sub: string; email: string },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ organizationId: string; role: OrganizationRoleDomain }> {
     const result = await this.organizationService.acceptInvite(
-      user?.sub as string,
-      (user?.email as string) ?? '',
+      user?.sub,
+      user?.email ?? '',
       dto.token,
     );
 
@@ -279,8 +309,6 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Param('userId', ParseObjectIdPipe) userId: string,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.removeMember(orgId, membership, userId);
   }
@@ -296,8 +324,6 @@ export class OrganizationController {
   async leaveOrganization(
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.leaveOrganization(orgId, membership);
   }
@@ -316,8 +342,6 @@ export class OrganizationController {
     @Param('userId', ParseObjectIdPipe) userId: string,
     @Body() dto: ChangeMemberRoleDtoRequest,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.changeMemberRole(
       orgId,
@@ -340,8 +364,6 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Param('userId', ParseObjectIdPipe) userId: string,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.suspendMember(orgId, membership, userId);
   }
@@ -359,8 +381,6 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Param('userId', ParseObjectIdPipe) userId: string,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<void> {
     await this.organizationService.reactivateMember(orgId, membership, userId);
   }
@@ -387,6 +407,19 @@ export class OrganizationController {
       status: m.status,
       joinedAt: m.joinedAt,
       leftAt: m.leftAt,
+      user: m.user,
     }));
+  }
+
+  @Get(':orgId/users/search')
+  @UseGuards(OrganizationMemberGuard, OrganizationRoleGuard)
+  @OrganizationRoles(OrganizationRoleDomain.OWNER, OrganizationRoleDomain.ADMIN)
+  @ApiOperation({ summary: 'Search existing users for invitation' })
+  @ApiResponse({ status: 200, type: [OrganizationUserSearchDtoResponse] })
+  async searchUsers(
+    @Param('orgId', ParseObjectIdPipe) _orgId: string,
+    @Query() query: SearchUsersDtoRequest,
+  ): Promise<OrganizationUserSearchDtoResponse[]> {
+    return this.organizationService.searchUsers(query.query);
   }
 }

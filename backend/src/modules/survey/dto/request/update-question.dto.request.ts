@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+import { QuestionType } from '@prisma/client';
 
 export class UpdateQuestionDtoRequest {
   @ApiProperty({ required: false })
@@ -18,6 +26,11 @@ export class UpdateQuestionDtoRequest {
   @IsOptional()
   @IsBoolean()
   isRequired?: boolean;
+
+  @ApiProperty({ required: false, enum: QuestionType })
+  @IsOptional()
+  @IsEnum(QuestionType)
+  type?: QuestionType;
 
   @ApiProperty({ required: false, type: Object })
   @IsOptional()

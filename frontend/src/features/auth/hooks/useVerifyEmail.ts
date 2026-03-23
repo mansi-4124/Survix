@@ -9,7 +9,7 @@ export const useVerifyEmail = () => {
     mutationFn: authApi.verifyEmail,
     onSuccess: (data) => {
       const { user, tokens } = data;
-      setAuth(user, tokens.accessToken);
+      setAuth(user, tokens?.accessToken);
     },
   });
 };

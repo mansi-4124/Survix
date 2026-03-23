@@ -10,6 +10,7 @@ export class PrismaSessionStore implements ISessionStore {
   async create(session: RefreshSession): Promise<RefreshSession> {
     const record = await this.prisma.session.create({
       data: {
+        sessionId: session.sessionId,
         userId: session.userId,
         refreshTokenHash: session.refreshTokenHash,
         expiresAt: session.expiresAt,
@@ -44,7 +45,7 @@ export class PrismaSessionStore implements ISessionStore {
 
   private toDomain(record: any): RefreshSession {
     return {
-      sessionId: record.id,
+      sessionId: record.sessionId,
       userId: record.userId,
       refreshTokenHash: record.refreshTokenHash,
       expiresAt: record.expiresAt,

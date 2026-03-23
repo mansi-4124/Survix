@@ -34,6 +34,11 @@ enum OrganizationStatus {
   SUSPENDED
 }
 
+enum OrganizationAccountType {
+  PERSONAL
+  ORGANIZATION
+}
+
 enum OrganizationRole {
   OWNER
   ADMIN
@@ -60,6 +65,7 @@ enum SurveyVisibility {
 
 enum SurveyRole {
   OWNER
+  ADMIN
   EDITOR
   ANALYST
   VIEWER
@@ -90,6 +96,17 @@ enum ResponseStatus {
   PARTIAL
 }
 
+enum PollType {
+  MCQ
+  ONE_WORD
+}
+
+enum PollStatus {
+  DRAFT
+  LIVE
+  CLOSED
+}
+
 //////////////////////////////////////////////////////
 // AUTH MODULE
 //////////////////////////////////////////////////////
@@ -117,6 +134,7 @@ model User {
   surveyMembers   SurveyMember[]
   responses       Response[]
   sessions        Session[]
+  pollsCreated    Poll[]
 }
 
 model PasswordHistory {
@@ -157,6 +175,8 @@ model Organization {
   slug         String                 @unique
   logoUrl      String?
   ownerId      String                 @db.ObjectId
+  accountType  OrganizationAccountType @default(ORGANIZATION)
+  isPersonal   Boolean                @default(false)
   description  String?
   industry     String?
   size         String?
@@ -171,6 +191,7 @@ model Organization {
 
   members OrganizationMember[]
   surveys Survey[]
+  polls   Poll[]
 
   @@index([ownerId])
   @@index([status])
@@ -362,7 +383,6 @@ model Response {
 
   answers Answer[]
 
-  @@unique([surveyId, userId])
   @@index([surveyId])
   @@index([surveyId, status])
   @@index([userId])
@@ -381,4 +401,121 @@ model Answer {
   @@unique([responseId, questionId])
   @@index([responseId])
   @@index([questionId])
+}
+
+//////////////////////////////////////////////////////
+// POLL MODULE
+//////////////////////////////////////////////////////
+
+model Poll {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  code           String   @unique
+  organizationId String   @db.ObjectId
+  title          String
+  description    String?
+  createdBy      String   @db.ObjectId
+  status         PollStatus @default(DRAFT)
+  startsAt       DateTime @default(now())
+  expiresAt      DateTime
+  allowAnonymous     Boolean @default(true)
+  allowMultipleVotes Boolean @default(false)
+  showLiveResults    Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  questions    PollQuestion[]
+  votes        PollVote[]
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([organizationId, createdAt])
+}
+
+model PollQuestion {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  pollId    String   @db.ObjectId
+  text      String
+  type      PollType
+  order     Int
+  createdAt DateTime @default(now())
+
+  poll    Poll               @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  options PollQuestionOption[]
+  votes   PollVote[]
+
+  @@index([pollId])
+  @@index([pollId, order])
+}
+
+model PollQuestionOption {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  questionId String   @db.ObjectId
+  text       String
+  createdAt  DateTime @default(now())
+
+  question PollQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+model PollVote {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  pollId     String   @db.ObjectId
+  questionId String   @db.ObjectId
+  optionId   String?  @db.ObjectId
+  wordAnswer String?
+  userId     String?  @db.ObjectId
+  sessionId  String?
+  voterKey   String
+  participantName String?
+  createdAt  DateTime @default(now())
+
+  poll     Poll         @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  question PollQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([pollId])
+  @@index([questionId])
+  @@index([optionId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([voterKey])
+  @@index([pollId, createdAt])
+  @@unique([pollId, questionId, voterKey])
+}
+
+model PollAnalytics {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  pollId     String   @db.ObjectId
+  totalVotes Int
+  totalViewers Int
+  peakVotesPerMinute Int
+  createdAt  DateTime @default(now())
+
+  @@index([pollId])
+}
+
+model ActivityLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  action    String
+  entity    String
+  entityId  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityId])
+}
+
+model PollParticipant {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  pollId    String   @db.ObjectId
+  userId    String?  @db.ObjectId
+  sessionId String?
+  joinedAt  DateTime @default(now())
+
+  @@index([pollId])
 }

@@ -1,4 +1,8 @@
-import { OrganizationVisibility, OrganizationStatus } from '@prisma/client';
+import {
+  OrganizationVisibility,
+  OrganizationStatus,
+  OrganizationAccountType,
+} from '@prisma/client';
 
 export type OrganizationDomain = {
   id: string;
@@ -6,6 +10,8 @@ export type OrganizationDomain = {
   slug: string;
   logoUrl?: string | null;
   ownerId: string;
+  accountType: OrganizationAccountType;
+  isPersonal: boolean;
   description?: string | null;
   industry?: string | null;
   size?: string | null;
@@ -17,4 +23,3 @@ export type OrganizationDomain = {
   createdAt: Date;
   updatedAt: Date;
 };
-

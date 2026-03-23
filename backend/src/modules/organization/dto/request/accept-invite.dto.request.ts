@@ -9,4 +9,3 @@ export class AcceptInviteDtoRequest {
   @IsNotEmpty()
   token: string;
 }
-

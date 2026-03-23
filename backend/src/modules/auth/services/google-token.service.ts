@@ -40,9 +40,8 @@ export class GoogleTokenService {
         name: payload.name,
         picture: payload.picture,
       };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid Google token');
     }
   }
 }
-

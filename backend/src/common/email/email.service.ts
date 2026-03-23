@@ -12,7 +12,9 @@ type SendMailOptions = {
 @Injectable()
 export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);
-  private readonly transporter: nodemailer.Transporter;
+  private readonly transporter: ReturnType<
+    typeof nodemailer.createTransport
+  > | null;
   private readonly fromAddress: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -28,13 +30,16 @@ export class EmailSenderService {
 
     this.fromAddress = user ?? 'no-reply@example.com';
 
-    this.transporter = nodemailer.createTransport({
-      service,
-      auth: {
-        user,
-        pass,
-      },
-    });
+    this.transporter =
+      user && pass
+        ? nodemailer.createTransport({
+            service,
+            auth: {
+              user,
+              pass,
+            },
+          })
+        : null;
   }
 
   async sendMail(options: SendMailOptions): Promise<void> {
@@ -60,4 +65,3 @@ export class EmailSenderService {
     }
   }
 }
-

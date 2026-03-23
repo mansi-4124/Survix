@@ -13,6 +13,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ParseObjectIdPipe } from 'src/common/pipes/parse-object-id.pipe';
 import { Public } from '../auth/decorators/public.decorator';
 import type { TokenPayload } from '../auth/domain/types/token-payload.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { SurveyAccessGuard } from '../survey/guards/survey-access.guard';
 import { SaveAnswersDtoRequest } from './dto/request/save-answers.dto.request';
@@ -61,6 +62,7 @@ export class ResponseController {
   }
 
   @Post('responses/:responseId/reopen')
+  @UseGuards(JwtAuthGuard)
   async reopenResponse(
     @Param('responseId', ParseObjectIdPipe) responseId: string,
     @CurrentUser() user: TokenPayload,
@@ -69,6 +71,7 @@ export class ResponseController {
   }
 
   @Delete('responses/:responseId')
+  @UseGuards(JwtAuthGuard)
   async softDeleteResponse(
     @Param('responseId', ParseObjectIdPipe) responseId: string,
     @CurrentUser() user: TokenPayload,

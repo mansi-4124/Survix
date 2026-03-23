@@ -1,15 +1,12 @@
-import {
-  BadRequestException,
-  Injectable,
-  PipeTransform,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { QuestionType } from '@prisma/client';
 import { CreateQuestionDtoRequest } from '../dto/request/create-question.dto.request';
 
 @Injectable()
-export class QuestionSettingsValidationPipe
-  implements PipeTransform<CreateQuestionDtoRequest, CreateQuestionDtoRequest>
-{
+export class QuestionSettingsValidationPipe implements PipeTransform<
+  CreateQuestionDtoRequest,
+  CreateQuestionDtoRequest
+> {
   transform(value: CreateQuestionDtoRequest): CreateQuestionDtoRequest {
     const settings = value.settings ?? {};
 

@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { OrganizationMemberUserDtoResponse } from './OrganizationMemberUserDtoResponse';
 export type OrganizationMemberDtoResponse = {
     id: string;
     userId: string;
@@ -10,6 +11,7 @@ export type OrganizationMemberDtoResponse = {
     status: OrganizationMemberDtoResponse.status;
     joinedAt?: Record<string, any>;
     leftAt?: Record<string, any>;
+    user?: OrganizationMemberUserDtoResponse;
 };
 export namespace OrganizationMemberDtoResponse {
     export enum role {

@@ -1,4 +1,42 @@
-# React + TypeScript + Vite
+# Survix Frontend
+
+React + TypeScript + Vite application for Survix surveys and live polls.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+With Vite proxy (default), API requests go to `http://localhost:3000`. Ensure the backend is running.
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_BASE_URL` | Backend API URL. Use empty `""` in dev with proxy. | `""` (dev) / origin (prod) |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID. Optional. | - |
+| `VITE_SOCKET_BASE_URL` | WebSocket base for real-time polls. | Falls back to API URL |
+
+## Build & Deployment
+
+```bash
+npm run build
+npm run preview  # Test production build locally
+```
+
+For production, set `VITE_API_BASE_URL` to your backend URL when building:
+
+```bash
+VITE_API_BASE_URL=https://api.example.com npm run build
+```
+
+Deploy the `dist/` folder to a static host (Vercel, Netlify, S3, etc.). Ensure the backend CORS allows your frontend origin.
+
+---
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -9,7 +9,7 @@ export const useGoogleAuth = () => {
     mutationFn: authApi.googleAuth,
     onSuccess: (data) => {
       const { user, tokens } = data;
-      setAuth(user, tokens.accessToken);
+      setAuth(user, tokens?.accessToken);
     },
   });
 };

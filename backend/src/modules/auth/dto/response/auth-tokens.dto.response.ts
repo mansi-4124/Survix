@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AuthTokensDto {
   @ApiProperty({
@@ -6,10 +6,11 @@ export class AuthTokensDto {
   })
   accessToken: string;
 
-  @ApiProperty({
-    description: 'JWT refresh token (httpOnly cookie is preferred)',
+  @ApiPropertyOptional({
+    description:
+      'JWT refresh token. Prefer using the httpOnly cookie; this field may be omitted by configuration.',
   })
-  refreshToken: string;
+  refreshToken?: string;
 
   @ApiProperty({
     description: 'Access token expiration in seconds',

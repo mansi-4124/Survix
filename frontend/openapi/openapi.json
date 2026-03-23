@@ -210,6 +210,27 @@
         "tags": ["Organizations"]
       }
     },
+    "/organizations/personal": {
+      "post": {
+        "operationId": "OrganizationController_createPersonalWorkspace",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSummaryDtoResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Create personal workspace",
+        "tags": ["Organizations"]
+      }
+    },
     "/organizations/{orgId}": {
       "get": {
         "operationId": "OrganizationController_getOrganizationDetails",
@@ -510,6 +531,43 @@
         },
         "security": [{ "bearer": [] }],
         "summary": "List organization members",
+        "tags": ["Organizations"]
+      }
+    },
+    "/organizations/{orgId}/users/search": {
+      "get": {
+        "operationId": "OrganizationController_searchUsers",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "query",
+            "required": true,
+            "in": "query",
+            "schema": { "example": "john", "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationUserSearchDtoResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Search existing users for invitation",
         "tags": ["Organizations"]
       }
     },
@@ -1115,9 +1173,22 @@
           "status": {
             "type": "string",
             "enum": ["ACTIVE", "ARCHIVED", "SUSPENDED"]
-          }
+          },
+          "accountType": {
+            "type": "string",
+            "enum": ["PERSONAL", "ORGANIZATION"]
+          },
+          "isPersonal": { "type": "boolean" }
         },
-        "required": ["id", "name", "slug", "role", "status"]
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "role",
+          "status",
+          "accountType",
+          "isPersonal"
+        ]
       },
       "OrganizationDtoResponse": {
         "type": "object",
@@ -1127,6 +1198,11 @@
           "slug": { "type": "string" },
           "logoUrl": { "type": "object" },
           "ownerId": { "type": "string" },
+          "accountType": {
+            "type": "string",
+            "enum": ["PERSONAL", "ORGANIZATION"]
+          },
+          "isPersonal": { "type": "boolean" },
           "description": { "type": "object" },
           "industry": { "type": "object" },
           "size": { "type": "object" },
@@ -1138,7 +1214,16 @@
             "enum": ["ACTIVE", "ARCHIVED", "SUSPENDED"]
           }
         },
-        "required": ["id", "name", "slug", "ownerId", "visibility", "status"]
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "ownerId",
+          "accountType",
+          "isPersonal",
+          "visibility",
+          "status"
+        ]
       },
       "OrganizationDetailsDtoResponse": {
         "type": "object",
@@ -1212,6 +1297,17 @@
         },
         "required": ["role"]
       },
+      "OrganizationMemberUserDtoResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "username": { "type": "object" },
+          "name": { "type": "object" },
+          "avatar": { "type": "object" }
+        },
+        "required": ["id", "email"]
+      },
       "OrganizationMemberDtoResponse": {
         "type": "object",
         "properties": {
@@ -1224,9 +1320,23 @@
             "enum": ["ACTIVE", "INVITED", "SUSPENDED", "LEFT"]
           },
           "joinedAt": { "type": "object" },
-          "leftAt": { "type": "object" }
+          "leftAt": { "type": "object" },
+          "user": {
+            "$ref": "#/components/schemas/OrganizationMemberUserDtoResponse"
+          }
         },
         "required": ["id", "userId", "organizationId", "role", "status"]
+      },
+      "OrganizationUserSearchDtoResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "username": { "type": "object" },
+          "name": { "type": "object" },
+          "avatar": { "type": "object" }
+        },
+        "required": ["id", "email"]
       },
       "CreateSurveyDtoRequest": {
         "type": "object",
