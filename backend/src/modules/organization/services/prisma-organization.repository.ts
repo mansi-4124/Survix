@@ -93,6 +93,7 @@ export class PrismaOrganizationRepository
       where: { id },
       data: {
         name: input.name,
+        logoUrl: input.logoUrl,
         description: input.description,
         industry: input.industry,
         size: input.size,

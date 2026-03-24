@@ -34,7 +34,10 @@ export class MediaService {
       throw new ForbiddenException('Only OWNER or EDITOR can upload media');
     }
 
-    const uploaded = await this.cloudinaryService.uploadFile(file);
+    const uploaded = await this.cloudinaryService.uploadFile(file, {
+      folder: 'surveys',
+      resourceType: 'auto',
+    });
     const type = this.resolveMediaType(file.mimetype);
 
     return this.prisma.mediaAsset.create({

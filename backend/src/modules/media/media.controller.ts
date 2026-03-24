@@ -31,6 +31,7 @@ export class MediaController {
     @CurrentUser() user: TokenPayload,
     @UploadedFile() file: UploadedFileType,
   ) {
+    console.log('Received file:', file);
     return this.mediaService.uploadToSurvey(surveyId, user.sub, file);
   }
 }

@@ -1,8 +1,11 @@
+import { useRef, type ChangeEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { OrganizationDtoResponse } from "@/api";
 import { asDisplayString } from "@/lib/normalize";
+import { useUploadOrganizationLogo } from "@/features/organization/hooks/useUploadOrganizationLogo";
+import { toast } from "@/lib/toast";
 import { useNavigate } from "react-router-dom";
 
 type OrganizationDetailsProps = {
@@ -19,6 +22,25 @@ const OrganizationDetails = ({
   totalMembers,
 }: OrganizationDetailsProps) => {
   const navigate = useNavigate();
+  const uploadLogo = useUploadOrganizationLogo();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !organization?.id) {
+      return;
+    }
+
+    uploadLogo.mutate(
+      { orgId: organization.id, file },
+      {
+        onSuccess: () => toast.success("Organization logo updated."),
+        onError: () => toast.error("Failed to upload organization logo."),
+      },
+    );
+
+    event.target.value = "";
+  };
   return (
     <Card className="p-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-200" />
@@ -52,6 +74,27 @@ const OrganizationDetails = ({
               asDisplayString(organization?.name, "O").slice(0, 1).toUpperCase()
             )}
           </div>
+          {allowEditOrg && (
+            <div className="mt-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                aria-label="Change logo"
+                className="hidden"
+                onChange={handleLogoChange}
+                disabled={uploadLogo.isPending}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploadLogo.isPending}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadLogo.isPending ? "Uploading..." : "Change Logo"}
+              </Button>
+            </div>
+          )}
           <h2 className="text-2xl font-bold mt-4">
             {organization?.name ?? "Organization"}
           </h2>

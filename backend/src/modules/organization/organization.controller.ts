@@ -9,11 +9,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -44,6 +46,8 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CurrentOrganizationMembership } from './decorators/current-organization-membership.decorator';
 import type { OrganizationMemberDomain } from './domain/types/organization-member.type';
 import { SearchUsersDtoRequest } from './dto/request/search-users.dto.request';
+import { FileUploadInterceptor } from 'src/common/interceptors/file-upload.interceptor';
+import type { UploadedFileType } from 'src/common/types/uploaded-file.type';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -192,6 +196,45 @@ export class OrganizationController {
     @Body() dto: UpdateOrganizationDtoRequest,
   ): Promise<OrganizationDtoResponse> {
     const updated = await this.organizationService.editOrganization(orgId, dto);
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      slug: updated.slug,
+      logoUrl: updated.logoUrl,
+      ownerId: updated.ownerId,
+      description: updated.description,
+      industry: updated.industry,
+      size: updated.size,
+      websiteUrl: updated.websiteUrl,
+      contactEmail: updated.contactEmail,
+      visibility: updated.visibility,
+      status: updated.status,
+      accountType: updated.accountType,
+      isPersonal: updated.isPersonal,
+    };
+  }
+
+  /*
+  =====================================================
+  UPLOAD ORGANIZATION LOGO
+  =====================================================
+  */
+  @Post(':orgId/logo')
+  @UseGuards(OrganizationMemberGuard, OrganizationRoleGuard)
+  @OrganizationRoles(OrganizationRoleDomain.OWNER, OrganizationRoleDomain.ADMIN)
+  @UseInterceptors(FileUploadInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload organization logo' })
+  @ApiResponse({ status: 200, type: OrganizationDtoResponse })
+  async uploadOrganizationLogo(
+    @Param('orgId', ParseObjectIdPipe) orgId: string,
+    @UploadedFile() file: UploadedFileType,
+  ): Promise<OrganizationDtoResponse> {
+    const updated = await this.organizationService.uploadOrganizationLogo(
+      orgId,
+      file,
+    );
 
     return {
       id: updated.id,

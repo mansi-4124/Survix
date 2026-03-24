@@ -27,6 +27,8 @@ import { Redis } from '@upstash/redis';
 import { REDIS_CLIENT } from 'src/common/redis/redis.module';
 import { randomBytes, createHash } from 'crypto';
 import { CreateOrganizationDtoRequest } from '../dto/request/create-organization.dto.request';
+import type { UploadedFileType } from 'src/common/types/uploaded-file.type';
+import { CloudinaryService } from 'src/modules/media/services/cloudinary.service';
 
 type InvitePayload = {
   orgId: string;
@@ -49,6 +51,8 @@ export class OrganizationService {
 
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
+
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   /*
@@ -149,6 +153,33 @@ export class OrganizationService {
     }
 
     return this.organizationRepository.update(orgId, input);
+  }
+
+  async uploadOrganizationLogo(
+    orgId: string,
+    file: UploadedFileType,
+  ): Promise<OrganizationDomain> {
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('Logo file is required');
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Logo must be an image');
+    }
+
+    const organization = await this.organizationRepository.findById(orgId);
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    const uploaded = await this.cloudinaryService.uploadFile(file, {
+      folder: 'organizations',
+      resourceType: 'image',
+    });
+
+    return this.organizationRepository.update(orgId, {
+      logoUrl: uploaded.url,
+    });
   }
 
   async softDeleteOrganization(orgId: string): Promise<OrganizationDomain> {

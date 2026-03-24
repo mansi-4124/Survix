@@ -14,3 +14,4 @@ export * from "./useRemoveMember";
 export * from "./useSoftDeleteOrganization";
 export * from "./useSuspendMember";
 export * from "./useTransferOwnership";
+export * from "./useUploadOrganizationLogo";

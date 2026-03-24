@@ -1,16 +1,20 @@
+import axios from "axios";
 import type {
   AcceptInviteDtoRequest,
   ChangeMemberRoleDtoRequest,
   CreateOrganizationDtoRequest,
   InviteMemberDtoRequest,
   OrganizationDetailsDtoResponse,
+  OrganizationDtoResponse,
   OrganizationMemberDtoResponse,
   OrganizationSummaryDtoResponse,
   OrganizationUserSearchDtoResponse,
   TransferOwnershipDtoRequest,
   UpdateOrganizationDtoRequest,
 } from "@/api";
+import { OpenAPI } from "@/api";
 import { OrganizationsService } from "@/api/services/OrganizationsService";
+import { useAuthStore } from "@/features/auth/store/auth.store";
 import { unwrapApiResponse } from "@/lib/api-response";
 
 export const organizationApi = {
@@ -114,4 +118,28 @@ export const organizationApi = {
     unwrapApiResponse<OrganizationUserSearchDtoResponse[]>(
       await OrganizationsService.organizationControllerSearchUsers(orgId, query),
     ),
+
+  uploadOrganizationLogo: async (
+    orgId: string,
+    file: File,
+  ): Promise<OrganizationDtoResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const base = OpenAPI.BASE || "http://localhost:3000";
+    const url = `${base}/organizations/${encodeURIComponent(orgId)}/logo`;
+    const token = useAuthStore.getState().accessToken;
+    const response = await axios.post(url, formData, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      withCredentials: OpenAPI.WITH_CREDENTIALS,
+    });
+    const data = response.data as
+      | OrganizationDtoResponse
+      | { data: OrganizationDtoResponse };
+    if (data && typeof data === "object" && "data" in data) {
+      return (data as { data: OrganizationDtoResponse }).data;
+    }
+    return data as OrganizationDtoResponse;
+  },
 };

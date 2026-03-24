@@ -10,6 +10,7 @@ import { OrganizationMemberGuard } from './guards/organization-member.guard';
 import { OrganizationRoleGuard } from './guards/organization-role.guard';
 import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { AuthModule } from '../auth/auth.module';
+import { CloudinaryService } from '../media/services/cloudinary.service';
 
 @Module({
   imports: [PrismaModule, RedisModule, EmailModule, AuthModule],
@@ -25,6 +26,7 @@ import { AuthModule } from '../auth/auth.module';
       provide: ORGANIZATION_TOKENS.ORGANIZATION_MEMBER_REPOSITORY,
       useExisting: PrismaOrganizationRepository,
     },
+    CloudinaryService,
     OrganizationMemberGuard,
     OrganizationRoleGuard,
     AuditInterceptor,

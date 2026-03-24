@@ -24,6 +24,7 @@ export type CreateOrganizationInput = {
 
 export type UpdateOrganizationInput = Partial<
   Omit<CreateOrganizationInput, 'ownerId' | 'slug'> & {
+    logoUrl?: string | null;
     status?: OrganizationStatus;
     deletedAt?: Date | null;
   }

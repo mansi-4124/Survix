@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { resolve } from 'path';
 import validationSchema from './config/validation.schema';
 import { PrismaModule } from 'prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -21,6 +22,10 @@ import { ScheduleModule } from '@nestjs/schedule';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        resolve(process.cwd(), '.env'),
+        resolve(process.cwd(), 'backend', '.env'),
+      ],
       validationSchema,
     }),
     ScheduleModule.forRoot(),
