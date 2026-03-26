@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './auth.controller';
+import { UserController } from './user.controller';
 import { AuthService } from './auth.service';
 
 import { PrismaUserRepository } from './services/prisma-user.repository';
@@ -19,10 +20,12 @@ import { PasswordResetService } from './services/password-reset.service';
 import { EmailService } from './services/email.service';
 import { GoogleTokenService } from './services/google-token.service';
 import { EmailModule } from 'src/common/email/email.module';
+import { MediaModule } from '../media/media.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
+import { UserProfileService } from './services/user-profile.service';
 
 @Module({
   imports: [
@@ -31,12 +34,14 @@ import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
     PrismaModule,
     RedisModule,
     EmailModule,
+    forwardRef(() => MediaModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UserController],
   providers: [
     AuthService,
     JwtStrategy,
     SessionService,
+    UserProfileService,
 
     OtpService,
     PasswordResetService,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+ï»¿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
@@ -6,8 +6,8 @@ import {
   ArrowUpRight,
   CalendarClock,
   ChartLine,
-  CircleDot,
   ClipboardCheck,
+  Dot,
   Globe2,
   Plus,
   Radio,
@@ -21,6 +21,7 @@ import { usePublicSurveys, useMySurveys } from "@/features/surveys/hooks";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useMyPolls } from "@/features/polls/hooks";
 import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
+import { useOrganizationDetails } from "@/features/organization/hooks/useOrganizationDetails";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -111,6 +112,9 @@ const formatRelativeDate = (value: string) => {
 const DashboardPage = () => {
   const { user } = useAuthStore();
   const { activeOrganizationId } = useActiveOrganization();
+  const { data: activeOrganization } = useOrganizationDetails(
+    activeOrganizationId ?? undefined,
+  );
   const [publicSearch, setPublicSearch] = useState("");
   const debouncedPublicSearch = useDebouncedValue(publicSearch, 300);
   const { data: surveys, isLoading: surveysLoading } = useMySurveys();
@@ -123,9 +127,21 @@ const DashboardPage = () => {
     isError: publicError,
   } = usePublicSurveys(debouncedPublicSearch || undefined);
 
-  const surveyList = surveys ?? [];
+  const surveySource = surveys ?? [];
+  const isPersonalWorkspace =
+    activeOrganization?.organization.accountType === "PERSONAL";
+  const surveyList = surveySource.filter((survey) => {
+    if (!activeOrganizationId) {
+      return !survey.organizationId;
+    }
+    if (isPersonalWorkspace) {
+      return (
+        survey.organizationId === activeOrganizationId || !survey.organizationId
+      );
+    }
+    return survey.organizationId === activeOrganizationId;
+  });
   const pollList = polls ?? [];
-
   const totalSurveys = surveyList.length;
   const publishedSurveys = surveyList.filter(
     (survey) => survey.status === "PUBLISHED",
@@ -192,7 +208,7 @@ const DashboardPage = () => {
 
   return (
     <PageReveal asChild>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-5">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -243,8 +259,10 @@ const DashboardPage = () => {
               <ClipboardCheck className="w-5 h-5 text-indigo-600" />
             </div>
             <p className="text-3xl font-semibold mt-2">{totalSurveys}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              {publishedSurveys} published  {draftSurveys} drafts
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+              <span>{publishedSurveys} published</span>
+              <Dot className="w-3 h-3 text-slate-400" />
+              <span>{draftSurveys} drafts</span>
             </p>
           </Card>
           <Card className="p-5 border-slate-200">
@@ -279,7 +297,7 @@ const DashboardPage = () => {
           </Card>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[2fr_1fr] items-start">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -477,8 +495,10 @@ const DashboardPage = () => {
                         <p className="font-medium text-slate-900">
                           {item.title}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          {item.type}  {item.status}
+                        <p className="text-xs text-slate-500 flex items-center gap-2">
+                          <span>{item.type}</span>
+                          <Dot className="w-3 h-3 text-slate-400" />
+                          <span>{item.status}</span>
                         </p>
                       </div>
                     </div>
@@ -516,7 +536,7 @@ const DashboardPage = () => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="space-y-4"
+          className="space-y-4 -mt-1"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -537,12 +557,9 @@ const DashboardPage = () => {
                   aria-label="Search public surveys"
                 />
               </div>
-              <Badge variant="outline" className="gap-1 shrink-0">
-                <CircleDot className="w-3 h-3" />
-                Live
-              </Badge>
             </div>
           </div>
+
           {surveysLoading || pollsLoading ? (
             <PageStateCard description="Loading dashboard insights..." />
           ) : null}
@@ -552,6 +569,7 @@ const DashboardPage = () => {
             isError={publicError}
           />
         </motion.div>
+
       </div>
     </PageReveal>
   );

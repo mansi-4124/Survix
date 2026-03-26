@@ -17,6 +17,7 @@ import { MediaModule } from './modules/media/media.module';
 import { AnonymousIdMiddleware } from './common/middleware/anonymous-id.middleware';
 import { PollModule } from './modules/poll/poll.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ResponseModule,
     MediaModule,
     PollModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -529,16 +529,27 @@ export class SurveyService {
   }
 
   async searchPublicSurveys(search?: string, user?: TokenPayload) {
+    const normalizedSearch = search?.trim();
     const where: Prisma.SurveyWhereInput = {
       visibility: SurveyVisibility.PUBLIC,
       status: SurveyStatus.PUBLISHED,
       OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
-      ...(search
+      ...(normalizedSearch
         ? {
-            title: {
-              contains: search,
-              mode: 'insensitive',
-            },
+            OR: [
+              {
+                title: {
+                  contains: normalizedSearch,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                description: {
+                  contains: normalizedSearch,
+                  mode: 'insensitive',
+                },
+              },
+            ],
           }
         : {}),
       ...(user?.sub

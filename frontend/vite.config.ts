@@ -139,6 +139,7 @@ export default defineConfig(({ command }) => {
         "/questions": "http://localhost:3000",
         "/media": "http://localhost:3000",
         "/polls": "http://localhost:3000",
+        "/search": "http://localhost:3000",
       },
     },
     preview: {

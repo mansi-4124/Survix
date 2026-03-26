@@ -17,7 +17,9 @@ const PollsPage = () => {
     isError,
   } = useMyPolls(activeOrganizationId ?? undefined);
 
-  const source = polls ?? [];
+  const source = (polls ?? []).filter(
+    (poll) => !activeOrganizationId || poll.organizationId === activeOrganizationId,
+  );
   const totalVotes = source.reduce((sum, poll) => sum + poll.totalVotes, 0);
   const activePolls = source.filter((poll) => poll.isActive).length;
   const recent = [...source].slice(0, 3);

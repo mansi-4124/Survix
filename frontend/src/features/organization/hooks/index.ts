@@ -8,6 +8,7 @@ export * from "./useLeaveOrganization";
 export * from "./useMyOrganizations";
 export * from "./useOrganizationDetails";
 export * from "./useOrganizationMembers";
+export * from "./usePublicOrganizationProfile";
 export * from "./useSearchOrganizationUsers";
 export * from "./useReactivateMember";
 export * from "./useRemoveMember";

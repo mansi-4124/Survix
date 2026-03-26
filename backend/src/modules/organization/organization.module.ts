@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from 'prisma/prisma.module';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { EmailModule } from 'src/common/email/email.module';
@@ -13,7 +13,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CloudinaryService } from '../media/services/cloudinary.service';
 
 @Module({
-  imports: [PrismaModule, RedisModule, EmailModule, AuthModule],
+  imports: [PrismaModule, RedisModule, EmailModule, forwardRef(() => AuthModule)],
   controllers: [OrganizationController],
   providers: [
     OrganizationService,

@@ -37,10 +37,6 @@ const OrganizationEditPage = () => {
       return;
     }
 
-    const visibility =
-      organizationDetails.organization.visibility ??
-      CreateOrganizationDtoRequest.visibility.PRIVATE;
-
     form.reset({
       name: organizationDetails.organization.name ?? "",
       slug: organizationDetails.organization.slug ?? "",

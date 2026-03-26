@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -80,6 +80,14 @@ const questionTypes: { value: CreateQuestionDtoRequest.type; label: string; icon
   { value: CreateQuestionDtoRequest.type.RANKING, label: "Ranking", icon: ListChecks },
 ];
 
+type QuestionDraft = {
+  title: string;
+  description: string;
+  type: CreateQuestionDtoRequest.type;
+  isRequired: boolean;
+  settings: Record<string, any>;
+};
+
 const supportsOptions = (type: string) =>
   type === CreateQuestionDtoRequest.type.CHECKBOX ||
   type === CreateQuestionDtoRequest.type.RADIO ||
@@ -127,6 +135,14 @@ const buildDefaultSettings = (
   return currentSettings ?? {};
 };
 
+const buildQuestionDraft = (question: any): QuestionDraft => ({
+  title: asString(question.text, "Untitled question"),
+  description: asString(question.description),
+  type: question.type as CreateQuestionDtoRequest.type,
+  isRequired: Boolean(question.isRequired),
+  settings: (question.settings ?? {}) as Record<string, any>,
+});
+
 const SurveyPage = () => {
   const { surveyId } = useParams();
   const navigate = useNavigate();
@@ -164,18 +180,12 @@ const SurveyPage = () => {
   const [inviteRole, setInviteRole] = useState<AddSurveyMemberDtoRequest.role>(
     AddSurveyMemberDtoRequest.role.EDITOR,
   );
-  const [pageDraft, setPageDraft] = useState({ title: "", description: "" });
-  const [questionDrafts, setQuestionDrafts] = useState<
-    Record<
-      string,
-      {
-        title: string;
-        description: string;
-        type: CreateQuestionDtoRequest.type;
-        isRequired: boolean;
-        settings: Record<string, any>;
-      }
-    >
+  const autoActionRef = useRef(new Set<string>());
+  const [pageDraftsById, setPageDraftsById] = useState<
+    Record<string, { title: string; description: string }>
+  >({});
+  const [questionDraftsByPageId, setQuestionDraftsByPageId] = useState<
+    Record<string, Record<string, QuestionDraft>>
   >({});
   const [isSavingPageQuestions, setIsSavingPageQuestions] = useState(false);
   const surveyForm = useForm<SurveyDetailsForm>({
@@ -224,6 +234,34 @@ const SurveyPage = () => {
   const canManageSurvey =
     effectiveRole === "OWNER" || effectiveRole === "ADMIN";
   const canEditSurvey = canManageSurvey || currentUserRole === "EDITOR";
+  const isReadOnly = survey?.status === "PUBLISHED" || survey?.status === "CLOSED";
+  const canEditSurveyContent = canEditSurvey && !isReadOnly;
+  const canManageSurveyContent = canManageSurvey && !isReadOnly;
+
+  const computedStatus = useMemo(() => {
+    if (!survey) return "DRAFT";
+    const now = Date.now();
+    const startsAtValue = (survey as any).startDate ?? survey.startsAt;
+    const endsAtValue = (survey as any).endDate ?? survey.endsAt;
+    const startsAt = startsAtValue ? new Date(startsAtValue).getTime() : null;
+    const endsAt = endsAtValue ? new Date(endsAtValue).getTime() : null;
+
+    if (
+      survey.status === "DRAFT" &&
+      typeof startsAt === "number" &&
+      startsAt > now
+    ) {
+      return "SCHEDULED";
+    }
+    if (
+      survey.status === "PUBLISHED" &&
+      typeof endsAt === "number" &&
+      endsAt <= now
+    ) {
+      return "CLOSED";
+    }
+    return survey.status;
+  }, [survey]);
 
   const pages = useMemo(
     () =>
@@ -238,6 +276,12 @@ const SurveyPage = () => {
       setActiveSurveyId(surveyId);
     }
   }, [surveyId, setActiveSurveyId]);
+
+  useEffect(() => {
+    if (!surveyId) return;
+    setPageDraftsById({});
+    setQuestionDraftsByPageId({});
+  }, [surveyId]);
 
   useEffect(() => {
     if (!pages.length) {
@@ -259,40 +303,91 @@ const SurveyPage = () => {
     [pages, activePageId],
   );
 
+  const pageDraft = useMemo(() => {
+    if (!activePageId) {
+      return { title: "", description: "" };
+    }
+    return pageDraftsById[activePageId] ?? { title: "", description: "" };
+  }, [activePageId, pageDraftsById]);
+
+  const questionDrafts = useMemo(() => {
+    if (!activePageId) {
+      return {};
+    }
+    return questionDraftsByPageId[activePageId] ?? {};
+  }, [activePageId, questionDraftsByPageId]);
+
+  const updatePageDraft = (updates: Partial<{ title: string; description: string }>) => {
+    if (!activePage) return;
+    setPageDraftsById((prev) => {
+      const current = prev[activePage.id] ?? { title: "", description: "" };
+      return {
+        ...prev,
+        [activePage.id]: {
+          ...current,
+          ...updates,
+        },
+      };
+    });
+  };
+
+  const updateQuestionDraft = (
+    questionId: string,
+    updater: (draft: QuestionDraft) => QuestionDraft,
+    fallbackDraft?: QuestionDraft,
+  ) => {
+    if (!activePage) return;
+    setQuestionDraftsByPageId((prev) => {
+      const currentPageDrafts = prev[activePage.id] ?? {};
+      const baseDraft = currentPageDrafts[questionId] ?? fallbackDraft;
+      if (!baseDraft) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [activePage.id]: {
+          ...currentPageDrafts,
+          [questionId]: updater(baseDraft),
+        },
+      };
+    });
+  };
+
   useEffect(() => {
     if (!activePage) {
-      setPageDraft({ title: "", description: "" });
-      setQuestionDrafts({});
       return;
     }
 
-    setPageDraft({
+    const pageId = activePage.id;
+    const basePageDraft = {
       title: asString(activePage.title),
       description: asString(activePage.description),
+    };
+
+    setPageDraftsById((prev) =>
+      prev[pageId] ? prev : { ...prev, [pageId]: basePageDraft },
+    );
+
+    setQuestionDraftsByPageId((prev) => {
+      const existing = prev[pageId] ?? {};
+      const next = { ...existing };
+      const currentIds = new Set<string>();
+
+      (activePage.questions ?? []).forEach((question: any) => {
+        currentIds.add(question.id);
+        if (!next[question.id]) {
+          next[question.id] = buildQuestionDraft(question);
+        }
+      });
+
+      Object.keys(next).forEach((id) => {
+        if (!currentIds.has(id)) {
+          delete next[id];
+        }
+      });
+
+      return { ...prev, [pageId]: next };
     });
-
-    const nextDrafts: Record<
-      string,
-      {
-        title: string;
-        description: string;
-        type: CreateQuestionDtoRequest.type;
-        isRequired: boolean;
-        settings: Record<string, any>;
-      }
-    > = {};
-
-    (activePage.questions ?? []).forEach((question: any) => {
-      nextDrafts[question.id] = {
-        title: asString(question.text, "Untitled question"),
-        description: asString(question.description),
-        type: question.type as CreateQuestionDtoRequest.type,
-        isRequired: Boolean(question.isRequired),
-        settings: (question.settings ?? {}) as Record<string, any>,
-      };
-    });
-
-    setQuestionDrafts(nextDrafts);
   }, [activePage?.id, activePage?.questions]);
 
   const visibleInviteCandidates = useMemo(() => {
@@ -311,16 +406,52 @@ const SurveyPage = () => {
           }));
 
     const existingMemberIds = new Set((members ?? []).map((member) => member.userId));
+    if (user?.id) {
+      existingMemberIds.add(user.id);
+    }
     return mapped.filter((candidate) => !existingMemberIds.has(candidate.id));
-  }, [inviteSearch, searchedUsers, organizationMembers, members]);
+  }, [inviteSearch, searchedUsers, organizationMembers, members, user?.id]);
 
   const publicLink =
     survey?.visibility === "PUBLIC" && surveyId
       ? `${window.location.origin}/respond/${surveyId}`
       : "";
 
+  useEffect(() => {
+    if (!survey || !canManageSurvey) return;
+    const now = Date.now();
+    const startsAtValue = (survey as any).startDate ?? survey.startsAt;
+    const endsAtValue = (survey as any).endDate ?? survey.endsAt;
+    const startsAt = startsAtValue ? new Date(startsAtValue).getTime() : null;
+    const endsAt = endsAtValue ? new Date(endsAtValue).getTime() : null;
+
+    if (
+      survey.status === "DRAFT" &&
+      typeof startsAt === "number" &&
+      startsAt <= now
+    ) {
+      const key = `publish-${survey.id}`;
+      if (!autoActionRef.current.has(key)) {
+        autoActionRef.current.add(key);
+        publishSurvey.mutate(survey.id);
+      }
+    }
+
+    if (
+      survey.status === "PUBLISHED" &&
+      typeof endsAt === "number" &&
+      endsAt <= now
+    ) {
+      const key = `close-${survey.id}`;
+      if (!autoActionRef.current.has(key)) {
+        autoActionRef.current.add(key);
+        closeSurvey.mutate(survey.id);
+      }
+    }
+  }, [survey, canManageSurvey, publishSurvey, closeSurvey]);
+
   const handleSaveSurvey = surveyForm.handleSubmit(async (values) => {
-    if (!surveyId || !canManageSurvey) return;
+    if (!surveyId || !canManageSurveyContent) return;
 
     surveyForm.clearErrors(["startDate", "endDate"]);
 
@@ -363,6 +494,7 @@ const SurveyPage = () => {
     pageId: string,
     type: CreateQuestionDtoRequest.type,
   ) => {
+    if (!canEditSurveyContent) return;
     await createQuestion.mutateAsync({
       pageId,
       data: {
@@ -380,27 +512,15 @@ const SurveyPage = () => {
     targetType: CreateQuestionDtoRequest.type,
   ) => {
     if (question.type === targetType) return;
-    setQuestionDrafts((prev) => {
-      const existing = prev[question.id] ?? {
-        title: asString(question.text, "Untitled question"),
-        description: asString(question.description),
-        type: question.type,
-        isRequired: Boolean(question.isRequired),
-        settings: (question.settings ?? {}) as Record<string, any>,
-      };
-      return {
-        ...prev,
-        [question.id]: {
-          ...existing,
-          type: targetType,
-          settings: buildDefaultSettings(targetType, existing.settings),
-        },
-      };
-    });
+    updateQuestionDraft(question.id, (existing) => ({
+      ...existing,
+      type: targetType,
+      settings: buildDefaultSettings(targetType, existing.settings),
+    }), buildQuestionDraft(question));
   };
 
   const handleSavePageAndQuestions = async () => {
-    if (!activePage || !canEditSurvey) return;
+    if (!activePage || !canEditSurveyContent) return;
 
     const originalTitle = asString(activePage.title);
     const originalDescription = asString(activePage.description);
@@ -501,7 +621,7 @@ const SurveyPage = () => {
         <Card className="p-6 border-slate-200 space-y-5">
           <SurveyHeaderActions
             title={asDisplayString(survey.title)}
-            status={survey.status}
+            status={computedStatus}
             roleLabel={asDisplayString(effectiveRole, "VIEWER")}
             canManageSurvey={canManageSurvey}
             isPublished={survey.status === "PUBLISHED"}
@@ -527,9 +647,16 @@ const SurveyPage = () => {
             }}
           />
 
+          {isReadOnly && (
+            <Card className="p-4 border-amber-200 bg-amber-50 text-amber-900">
+              This survey is {survey.status.toLowerCase()}. Editing is locked
+              except for members management.
+            </Card>
+          )}
+
           <SurveyDetailsFormSection
             form={surveyForm}
-            canManageSurvey={canManageSurvey}
+            canManageSurvey={canManageSurveyContent}
             isSaving={updateSurvey.isPending}
             minDateTime={minDateTime}
             onSubmit={handleSaveSurvey}
@@ -543,14 +670,14 @@ const SurveyPage = () => {
             <Button
               size="sm"
               onClick={async () => {
-                if (!surveyId || !canEditSurvey) return;
+                if (!surveyId || !canEditSurveyContent) return;
                 const createdPage = await createPage.mutateAsync({
                   surveyId,
                   data: { title: `Page ${pages.length + 1}`, description: "" },
                 });
                 setActivePageId(createdPage.id);
               }}
-              disabled={!canEditSurvey}
+              disabled={!canEditSurveyContent}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Page
@@ -590,7 +717,7 @@ const SurveyPage = () => {
                   <Button
                     variant="outline"
                     onClick={handleSavePageAndQuestions}
-                    disabled={!canEditSurvey || isSavingPageQuestions}
+                    disabled={!canEditSurveyContent || isSavingPageQuestions}
                   >
                     {isSavingPageQuestions ? "Saving..." : "Save Page & Questions"}
                   </Button>
@@ -599,26 +726,23 @@ const SurveyPage = () => {
                 <div className="space-y-3" key={activePage.id}>
                   <Input
                     value={pageDraft.title}
-                    disabled={!canEditSurvey}
+                    disabled={!canEditSurveyContent}
                     onChange={(event) =>
-                      setPageDraft((prev) => ({ ...prev, title: event.target.value }))
+                      updatePageDraft({ title: event.target.value })
                     }
                   />
                   <Textarea
                     value={pageDraft.description}
-                    disabled={!canEditSurvey}
+                    disabled={!canEditSurveyContent}
                     onChange={(event) =>
-                      setPageDraft((prev) => ({
-                        ...prev,
-                        description: event.target.value,
-                      }))
+                      updatePageDraft({ description: event.target.value })
                     }
                   />
                   <div className="flex justify-end">
                     <Button
                       variant="outline"
                       onClick={() => deletePage.mutate(activePage.id)}
-                      disabled={!canEditSurvey}
+                      disabled={!canEditSurveyContent}
                     >
                       Delete Page
                     </Button>
@@ -629,13 +753,7 @@ const SurveyPage = () => {
                   .sort((a: any, b: any) => Number(a.order) - Number(b.order))
                   .map((question: any) => {
                     const draft =
-                      questionDrafts[question.id] ?? {
-                        title: asString(question.text, "Untitled question"),
-                        description: asString(question.description),
-                        type: question.type as CreateQuestionDtoRequest.type,
-                        isRequired: Boolean(question.isRequired),
-                        settings: (question.settings ?? {}) as Record<string, any>,
-                      };
+                      questionDrafts[question.id] ?? buildQuestionDraft(question);
                     const options = normalizeQuestionOptions(draft.settings);
                     return (
                       <div
@@ -646,29 +764,31 @@ const SurveyPage = () => {
                           <div className="p-4 space-y-3">
                           <Input
                             value={draft.title}
-                            disabled={!canEditSurvey}
+                            disabled={!canEditSurveyContent}
                             onChange={(event) =>
-                              setQuestionDrafts((prev) => ({
-                                ...prev,
-                                [question.id]: {
-                                  ...draft,
+                              updateQuestionDraft(
+                                question.id,
+                                (current) => ({
+                                  ...current,
                                   title: event.target.value,
-                                },
-                              }))
+                                }),
+                                draft,
+                              )
                             }
                             placeholder="Question title"
                           />
                           <Textarea
                             value={draft.description}
-                            disabled={!canEditSurvey}
+                            disabled={!canEditSurveyContent}
                             onChange={(event) =>
-                              setQuestionDrafts((prev) => ({
-                                ...prev,
-                                [question.id]: {
-                                  ...draft,
+                              updateQuestionDraft(
+                                question.id,
+                                (current) => ({
+                                  ...current,
                                   description: event.target.value,
-                                },
-                              }))
+                                }),
+                                draft,
+                              )
                             }
                             placeholder="Question description"
                           />
@@ -683,7 +803,7 @@ const SurveyPage = () => {
                                     value as CreateQuestionDtoRequest.type,
                                   )
                                 }
-                                disabled={!canEditSurvey}
+                                disabled={!canEditSurveyContent}
                               >
                                 <SelectTrigger>
                                   <SelectValue />
@@ -703,15 +823,16 @@ const SurveyPage = () => {
                                 <Switch
                                   checked={draft.isRequired}
                                   onCheckedChange={(value) =>
-                                    setQuestionDrafts((prev) => ({
-                                      ...prev,
-                                      [question.id]: {
-                                        ...draft,
+                                    updateQuestionDraft(
+                                      question.id,
+                                      (current) => ({
+                                        ...current,
                                         isRequired: value,
-                                      },
-                                    }))
+                                      }),
+                                      draft,
+                                    )
                                   }
-                                  disabled={!canEditSurvey}
+                                  disabled={!canEditSurveyContent}
                                 />
                               </div>
                             </div>
@@ -725,38 +846,40 @@ const SurveyPage = () => {
                                   <Input
                                     key={`${question.id}-${index}`}
                                     value={option}
-                                    disabled={!canEditSurvey}
+                                    disabled={!canEditSurveyContent}
                                     onChange={(event) => {
                                       const nextOptions = options.slice();
                                       nextOptions[index] = event.target.value;
-                                      setQuestionDrafts((prev) => ({
-                                        ...prev,
-                                        [question.id]: {
-                                          ...draft,
+                                      updateQuestionDraft(
+                                        question.id,
+                                        (current) => ({
+                                          ...current,
                                           settings: {
-                                            ...(draft.settings ?? {}),
+                                            ...(current.settings ?? {}),
                                             options: nextOptions,
                                           },
-                                        },
-                                      }));
+                                        }),
+                                        draft,
+                                      );
                                     }}
                                   />
                                 ))}
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  disabled={!canEditSurvey}
+                                  disabled={!canEditSurveyContent}
                                   onClick={() =>
-                                    setQuestionDrafts((prev) => ({
-                                      ...prev,
-                                      [question.id]: {
-                                        ...draft,
+                                    updateQuestionDraft(
+                                      question.id,
+                                      (current) => ({
+                                        ...current,
                                         settings: {
-                                          ...(draft.settings ?? {}),
+                                          ...(current.settings ?? {}),
                                           options: [...options, `Option ${options.length + 1}`],
                                         },
-                                      },
-                                    }))
+                                      }),
+                                      draft,
+                                    )
                                   }
                                 >
                                   <Plus className="w-4 h-4 mr-2" />
@@ -770,7 +893,7 @@ const SurveyPage = () => {
                             <Button
                               variant="ghost"
                               onClick={() => deleteQuestion.mutate(question.id)}
-                              disabled={!canEditSurvey}
+                              disabled={!canEditSurveyContent}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
@@ -791,7 +914,7 @@ const SurveyPage = () => {
                         key={type.value}
                         variant="outline"
                         className="justify-start"
-                        disabled={!canEditSurvey}
+                        disabled={!canEditSurveyContent}
                         onClick={() => handleAddQuestion(activePage.id, type.value)}
                       >
                         <type.icon className="w-4 h-4 mr-2" />
@@ -813,7 +936,7 @@ const SurveyPage = () => {
                 to={`/app/surveys/${surveyId}/members`}
                 className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
-                Full page →
+                Full page {"->"}
               </Link>
             )}
           </div>
@@ -826,16 +949,26 @@ const SurveyPage = () => {
                     onChange={(event) => setInviteSearch(event.target.value)}
                     placeholder="Search organization members"
                   />
-                  <Select value={inviteUserId} onValueChange={setInviteUserId}>
+                  <Select
+                    value={inviteUserId}
+                    onValueChange={setInviteUserId}
+                    disabled={visibleInviteCandidates.length === 0}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      {visibleInviteCandidates.map((candidate) => (
-                        <SelectItem key={candidate.id} value={candidate.id}>
-                          {candidate.label} ({candidate.subtitle})
+                      {visibleInviteCandidates.length === 0 ? (
+                        <SelectItem value="__none__" disabled>
+                          No members available
                         </SelectItem>
-                      ))}
+                      ) : (
+                        visibleInviteCandidates.map((candidate) => (
+                          <SelectItem key={candidate.id} value={candidate.id}>
+                            {candidate.label} ({candidate.subtitle})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <Select
@@ -855,7 +988,11 @@ const SurveyPage = () => {
                   </Select>
                   <Button
                     className="w-full"
-                    disabled={!inviteUserId || addSurveyMember.isPending}
+                    disabled={
+                      !inviteUserId ||
+                      addSurveyMember.isPending ||
+                      visibleInviteCandidates.length === 0
+                    }
                     onClick={async () => {
                       if (!surveyId || !inviteUserId) return;
                       await addSurveyMember.mutateAsync({
@@ -944,3 +1081,5 @@ const SurveyPage = () => {
 };
 
 export default SurveyPage;
+
+

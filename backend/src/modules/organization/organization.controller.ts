@@ -20,6 +20,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrganizationService } from './services/organization.service';
 import { CreateOrganizationDtoRequest } from './dto/request/create-organization.dto.request';
@@ -41,6 +43,7 @@ import { TransferOwnershipDtoRequest } from './dto/request/transfer-ownership.dt
 import { ChangeMemberRoleDtoRequest } from './dto/request/change-member-role.dto.request';
 import { OrganizationMemberDtoResponse } from './dto/response/organization-member.dto.response';
 import { OrganizationUserSearchDtoResponse } from './dto/response/organization-user-search.dto.response';
+import { PublicOrganizationDtoResponse } from './dto/response/public-organization.dto.response';
 import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CurrentOrganizationMembership } from './decorators/current-organization-membership.decorator';
@@ -145,6 +148,18 @@ export class OrganizationController {
   GET ORGANIZATION DETAILS
   =====================================================
   */
+  @Public()
+  @Get('public/:slug')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get public organization profile' })
+  @ApiResponse({ status: 200, type: PublicOrganizationDtoResponse })
+  async getPublicOrganizationProfile(
+    @Param('slug') slug: string,
+    @CurrentUser() user?: { sub?: string },
+  ): Promise<PublicOrganizationDtoResponse> {
+    return this.organizationService.getPublicOrganizationProfile(slug, user?.sub);
+  }
+
   @Get(':orgId')
   @UseGuards(OrganizationMemberGuard)
   @ApiOperation({ summary: 'Get organization details' })

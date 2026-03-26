@@ -99,9 +99,11 @@ const ResetPasswordPage = () => {
         >
           <Card className="p-8 shadow-2xl border-slate-200/50 backdrop-blur-xl bg-white/95">
             <div className="flex items-center justify-center gap-2 mb-8">
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Survix
-              </span>
+              <img
+                src="/Survix_logo_transparent.png"
+                alt="Survix"
+                className="h-10 w-auto"
+              />
             </div>
 
           <div className="text-center mb-8">

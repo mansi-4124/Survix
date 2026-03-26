@@ -14,8 +14,48 @@ import type {
 } from "@/api";
 import { OpenAPI } from "@/api";
 import { OrganizationsService } from "@/api/services/OrganizationsService";
+import { request } from "@/api/core/request";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { unwrapApiResponse } from "@/lib/api-response";
+
+export type PublicOrganizationSurvey = {
+  id: string;
+  title: string;
+  description?: string | null;
+  visibility: string;
+  status: string;
+  allowAnonymous: boolean;
+  randomizeQuestions: boolean;
+  createdAt: string;
+};
+
+export type PublicOrganizationPoll = {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  isActive: boolean;
+  expiresAt: string;
+  totalVotes: number;
+};
+
+export type PublicOrganizationProfile = {
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl?: string | null;
+    accountType: string;
+    description?: string | null;
+    industry?: string | null;
+    size?: string | null;
+    websiteUrl?: string | null;
+    contactEmail?: string | null;
+    visibility: string;
+  };
+  surveys: PublicOrganizationSurvey[];
+  polls: PublicOrganizationPoll[];
+};
 
 export const organizationApi = {
   createOrganization: async (data: CreateOrganizationDtoRequest) =>
@@ -117,6 +157,15 @@ export const organizationApi = {
   searchUsers: async (orgId: string, query: string) =>
     unwrapApiResponse<OrganizationUserSearchDtoResponse[]>(
       await OrganizationsService.organizationControllerSearchUsers(orgId, query),
+    ),
+
+  getPublicOrganizationProfile: async (slug: string) =>
+    unwrapApiResponse<PublicOrganizationProfile>(
+      await request(OpenAPI, {
+        method: "GET",
+        url: "/organizations/public/{slug}",
+        path: { slug },
+      }),
     ),
 
   uploadOrganizationLogo: async (

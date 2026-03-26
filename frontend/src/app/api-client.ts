@@ -10,7 +10,7 @@ export const configureApiClient = () => {
     typeof env === "string"
       ? env
       : import.meta.env.DEV
-        ? ""
+        ? "http://localhost:3000"
         : window.location.origin;
   OpenAPI.WITH_CREDENTIALS = true;
   OpenAPI.CREDENTIALS = "include";

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,16 @@ import {
 import { useSurveysUiStore } from "@/features/surveys/store/surveys-ui.store";
 import { asDisplayString } from "@/lib/normalize";
 import { PageReveal } from "@/components/common/page-reveal";
+import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
+import { useOrganizationDetails } from "@/features/organization/hooks/useOrganizationDetails";
 
 const SurveysPage = () => {
   const navigate = useNavigate();
   const { data: surveys, isLoading, isError } = useMySurveys();
+  const { activeOrganizationId } = useActiveOrganization();
+  const { data: activeOrganization } = useOrganizationDetails(
+    activeOrganizationId ?? undefined,
+  );
   const publishSurvey = usePublishSurvey();
   const closeSurvey = useCloseSurvey();
   const duplicateSurvey = useDuplicateSurvey();
@@ -28,19 +34,68 @@ const SurveysPage = () => {
   const search = useSurveysUiStore((s) => s.surveysSearch);
   const setSearch = useSurveysUiStore((s) => s.setSurveysSearch);
   const setActiveSurveyId = useSurveysUiStore((s) => s.setActiveSurveyId);
+  const autoActionRef = useRef(new Set<string>());
 
   const filtered = useMemo(() => {
     const source = surveys ?? [];
+    const isPersonalWorkspace =
+      activeOrganization?.organization.accountType === "PERSONAL";
+    const scoped = source.filter((survey) => {
+      if (!activeOrganizationId) {
+        return !survey.organizationId;
+      }
+      if (isPersonalWorkspace) {
+        return (
+          survey.organizationId === activeOrganizationId ||
+          !survey.organizationId
+        );
+      }
+      return survey.organizationId === activeOrganizationId;
+    });
     const query = search.trim().toLowerCase();
     if (!query) {
-      return source;
+      return scoped;
     }
-    return source.filter(
+    return scoped.filter(
       (survey) =>
         survey.title.toLowerCase().includes(query) ||
         asDisplayString(survey.description, "").toLowerCase().includes(query),
     );
-  }, [search, surveys]);
+  }, [activeOrganization, activeOrganizationId, search, surveys]);
+
+  useEffect(() => {
+    if (!surveys || surveys.length === 0) return;
+    const now = Date.now();
+    surveys.forEach((survey) => {
+      if (!["OWNER", "ADMIN"].includes(survey.role)) return;
+      const startsAt = survey.startsAt ? new Date(survey.startsAt).getTime() : null;
+      const endsAt = survey.endsAt ? new Date(survey.endsAt).getTime() : null;
+
+      if (
+        survey.status === "DRAFT" &&
+        typeof startsAt === "number" &&
+        startsAt <= now
+      ) {
+        const key = `publish-${survey.id}`;
+        if (!autoActionRef.current.has(key)) {
+          autoActionRef.current.add(key);
+          publishSurvey.mutate(survey.id);
+        }
+      }
+
+      if (
+        survey.status === "PUBLISHED" &&
+        typeof endsAt === "number" &&
+        endsAt <= now
+      ) {
+        const key = `close-${survey.id}`;
+        if (!autoActionRef.current.has(key)) {
+          autoActionRef.current.add(key);
+          closeSurvey.mutate(survey.id);
+        }
+      }
+    });
+  }, [surveys, publishSurvey, closeSurvey]);
 
   return (
     <PageReveal asChild>

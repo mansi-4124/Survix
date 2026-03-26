@@ -42,6 +42,10 @@ const PollJoinPage = () => {
       const poll = await pollsApi.getPollForJoinByCode(normalizedCode);
       sessionStorage.setItem("poll_participant_name", name.trim());
       sessionStorage.setItem("poll_session_id", crypto.randomUUID());
+      if (!poll.isActive || poll.status === "CLOSED") {
+        navigate(`/poll/participate/${poll.id}`);
+        return;
+      }
       toast.success("Joined poll successfully.");
       navigate(`/poll/participate/${poll.id}`);
     } catch {

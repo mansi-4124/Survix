@@ -1,7 +1,10 @@
-import { Copy, Share2, Trash2 } from "lucide-react";
+import { Check, Copy, Share2, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { asDisplayString } from "@/lib/normalize";
 
 type SurveyHeaderActionsProps = {
@@ -38,6 +41,8 @@ export const SurveyHeaderActions = ({
   onDelete,
 }: SurveyHeaderActionsProps) => {
   const navigate = useNavigate();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -68,7 +73,11 @@ export const SurveyHeaderActions = ({
           <Copy className="w-4 h-4 mr-2" />
           Duplicate Survey
         </Button>
-        <Button variant="outline" onClick={onShareLink} disabled={!publicLink}>
+        <Button
+          variant="outline"
+          onClick={() => setShareOpen(true)}
+          disabled={!publicLink}
+        >
           <Share2 className="w-4 h-4 mr-2" />
           Share Survey Link
         </Button>
@@ -79,7 +88,49 @@ export const SurveyHeaderActions = ({
           </Button>
         )}
       </div>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="p-6">
+          <DialogHeader>
+            <DialogTitle>Share survey</DialogTitle>
+            <DialogDescription>
+              Copy and share this public survey link with your audience.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Input value={publicLink} readOnly className="pr-28" />
+              <Button
+                type="button"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
+                onClick={async () => {
+                  await onShareLink();
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy link
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setShareOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
-

@@ -3,11 +3,14 @@ import { useAuthStore } from "@/features/auth/store/auth.store";
 import { Outlet, useNavigation } from "react-router-dom";
 import { PageLoader } from "@/components/common/page-loader";
 import { useEffect } from "react";
+import { SiteFooter } from "@/components/common/site-footer";
+import { SiteHeader } from "@/components/common/site-header";
 
 function App() {
   useAuthInit();
 
   const isInitializing = useAuthStore((s) => s.isInitializing);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const navigation = useNavigation();
   const isNavigating = navigation.state !== "idle";
 
@@ -36,7 +39,7 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  if (isInitializing) {
+  if (!hasHydrated || isInitializing) {
     return <PageLoader fullScreen message="Initializing app..." />;
   }
 
@@ -45,7 +48,9 @@ function App() {
       {isNavigating ? (
         <div className="fixed top-0 left-0 right-0 h-1 z-[120] bg-gradient-to-r from-cyan-500 via-indigo-500 to-cyan-500 animate-pulse" />
       ) : null}
+      <SiteHeader />
       <Outlet />
+      <SiteFooter />
     </>
   );
 }

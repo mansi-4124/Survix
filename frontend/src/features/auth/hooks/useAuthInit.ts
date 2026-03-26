@@ -31,7 +31,6 @@ export const useAuthInit = () => {
 
   // Subscribe to persist hydration completion (handles async rehydration)
   useEffect(() => {
-    const store = useAuthStore.getState();
     const persist = (useAuthStore as unknown as { persist?: { hasHydrated: () => boolean; onFinishHydration: (fn: () => void) => () => void } }).persist;
     if (!persist) {
       setHasHydrated(true);
@@ -74,19 +73,6 @@ export const useAuthInit = () => {
           if (accessToken) {
             setAccessToken(accessToken);
           }
-          setInitializing(false);
-
-          authApi
-            .refresh()
-            .then((res) => {
-              const { user, tokens } = res;
-              setAuth(user, tokens?.accessToken);
-            })
-            .catch(() => {
-              clearAuth();
-            });
-
-          return;
         }
 
         const refreshed = await refreshWithTimeout(8000);

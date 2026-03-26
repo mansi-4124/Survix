@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, Send } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,39 @@ import { usePollForLiveView, useSubmitPollVote } from "@/features/polls/hooks";
 import { toast } from "@/lib/toast";
 import { PageReveal } from "@/components/common/page-reveal";
 import { connectPollRealtime } from "@/features/polls/realtime/poll-realtime";
+
+type ClosedPollMessageProps = {
+  title: string;
+  code: string;
+  onBack: () => void;
+};
+
+const ClosedPollMessage = ({ title, code, onBack }: ClosedPollMessageProps) => (
+  <div className="min-h-screen p-6 bg-gradient-to-br from-indigo-50 via-slate-50 to-cyan-50 flex items-center justify-center">
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="w-full max-w-lg"
+    >
+      <Card className="p-8 border-slate-200 text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold">Poll Closed</h1>
+          <p className="text-slate-600">
+            {title} is no longer accepting responses.
+          </p>
+          <p className="text-sm text-slate-500">Code: {code}</p>
+        </div>
+        <Button variant="outline" onClick={onBack}>
+          Back to Join
+        </Button>
+      </Card>
+    </motion.div>
+  </div>
+);
 
 const PollParticipatePage = () => {
   const { pollId } = useParams();
@@ -56,6 +90,18 @@ const PollParticipatePage = () => {
       <PageReveal>
         <PageStateCard className="m-6" tone="error" description="Poll not found." />
       </PageReveal>
+    );
+  }
+
+  const isClosed = !pollActive || !poll.isActive || poll.status === "CLOSED";
+
+  if (isClosed) {
+    return (
+      <ClosedPollMessage
+        title={poll.title}
+        code={poll.code}
+        onBack={() => navigate("/poll/join")}
+      />
     );
   }
 

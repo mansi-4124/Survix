@@ -399,7 +399,7 @@ const PollLivePage = () => {
     .slice(0, 4);
 
   return (
-    <PageReveal asChild>
+    <PageReveal asChild initial={false} transition={{ duration: 0 }}>
       <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>

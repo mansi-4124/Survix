@@ -29,9 +29,6 @@ export const SurveyDetailsFormSection = ({
   minDateTime,
   onSubmit,
 }: SurveyDetailsFormSectionProps) => {
-  const startDateValue = form.watch("startDate");
-  const endDateValue = form.watch("endDate");
-
   return (
     <form className="grid md:grid-cols-2 gap-4" onSubmit={onSubmit}>
       <div className="space-y-2 md:col-span-2">

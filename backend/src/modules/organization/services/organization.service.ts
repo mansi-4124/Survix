@@ -9,6 +9,9 @@ import {
   OrganizationMemberStatus,
   OrganizationStatus,
   OrganizationVisibility,
+  PollStatus,
+  SurveyStatus,
+  SurveyVisibility,
 } from '@prisma/client';
 import { Inject } from '@nestjs/common';
 import { ORGANIZATION_TOKENS } from '../organization.tokens';
@@ -29,6 +32,8 @@ import { randomBytes, createHash } from 'crypto';
 import { CreateOrganizationDtoRequest } from '../dto/request/create-organization.dto.request';
 import type { UploadedFileType } from 'src/common/types/uploaded-file.type';
 import { CloudinaryService } from 'src/modules/media/services/cloudinary.service';
+import { PrismaService } from 'prisma/prisma.service';
+import { PublicOrganizationDtoResponse } from '../dto/response/public-organization.dto.response';
 
 type InvitePayload = {
   orgId: string;
@@ -53,6 +58,8 @@ export class OrganizationService {
     private readonly redis: Redis,
 
     private readonly cloudinaryService: CloudinaryService,
+
+    private readonly prisma: PrismaService,
   ) {}
 
   /*
@@ -141,6 +148,107 @@ export class OrganizationService {
     }
 
     return { organization, membership };
+  }
+
+  async getPublicOrganizationProfile(
+    slug: string,
+    userId?: string,
+  ): Promise<PublicOrganizationDtoResponse> {
+    const organization = await this.prisma.organization.findFirst({
+      where: {
+        slug,
+        status: OrganizationStatus.ACTIVE,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    if (organization.visibility !== OrganizationVisibility.PUBLIC) {
+      if (!userId) {
+        throw new NotFoundException('Organization not found');
+      }
+
+      const membership = await this.prisma.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: organization.id,
+            userId,
+          },
+        },
+      });
+
+      if (!membership || membership.status !== OrganizationMemberStatus.ACTIVE) {
+        throw new NotFoundException('Organization not found');
+      }
+    }
+
+    const publicSurveyWhere = {
+      organizationId: organization.id,
+      visibility: SurveyVisibility.PUBLIC,
+      status: SurveyStatus.PUBLISHED,
+      OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
+    };
+
+    const publicPollWhere = {
+      organizationId: organization.id,
+      status: { in: [PollStatus.LIVE, PollStatus.CLOSED] },
+      allowAnonymous: true,
+    };
+
+    const [surveys, polls] = await this.prisma.$transaction([
+      this.prisma.survey.findMany({
+        where: publicSurveyWhere,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          visibility: true,
+          status: true,
+          allowAnonymous: true,
+          randomizeQuestions: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.poll.findMany({
+        where: publicPollWhere,
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { votes: true } } },
+      }),
+    ]);
+
+    const now = Date.now();
+
+    return {
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        logoUrl: organization.logoUrl,
+        accountType: organization.accountType,
+        description: organization.description,
+        industry: organization.industry,
+        size: organization.size,
+        websiteUrl: organization.websiteUrl,
+        contactEmail: organization.contactEmail,
+        visibility: organization.visibility,
+      },
+      surveys: surveys.map((survey) => ({
+        ...survey,
+      })),
+      polls: polls.map((poll) => ({
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        status: poll.status,
+        isActive: poll.status === PollStatus.LIVE && poll.expiresAt.getTime() > now,
+        expiresAt: poll.expiresAt,
+        totalVotes: poll._count.votes,
+      })),
+    };
   }
 
   async editOrganization(

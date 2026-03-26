@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSurveyStructure } from "@/features/surveys/hooks";
 import {
   useSaveAnswers,
@@ -16,8 +17,10 @@ import { PageStateCard } from "@/components/common/page-state-card";
 import { toast } from "@/lib/toast";
 import { PageReveal } from "@/components/common/page-reveal";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { motion } from "motion/react";
+import { Check } from "lucide-react";
 
-type AnswerState = Record<string, string>;
+type AnswerState = Record<string, string | string[]>;
 
 const SurveyResponsePage = () => {
   const { id: surveyId } = useParams();
@@ -77,10 +80,13 @@ const SurveyResponsePage = () => {
   const saveCurrentPageAnswers = async () => {
     const id = await ensureResponse();
     if (!id || !currentPage) return;
-    const payload = (currentPage.questions ?? []).map((question: any) => ({
-      questionId: question.id as string,
-      value: { answer: answers[question.id as string] ?? "" },
-    }));
+    const payload = (currentPage.questions ?? []).map((question: any) => {
+      const answer = answers[question.id as string];
+      return {
+        questionId: question.id as string,
+        value: { answer: answer ?? "" },
+      };
+    });
 
     await saveAnswers.mutateAsync({
       responseId: id,
@@ -93,7 +99,13 @@ const SurveyResponsePage = () => {
     const nextErrors: Record<string, string> = {};
     (currentPage.questions ?? []).forEach((question: any) => {
       if (!question.isRequired) return;
-      const answer = answers[String(question.id)] ?? "";
+      const answer = answers[String(question.id)];
+      if (Array.isArray(answer)) {
+        if (answer.length === 0) {
+          nextErrors[String(question.id)] = "This field is required.";
+        }
+        return;
+      }
       if (!answer || String(answer).trim() === "") {
         nextErrors[String(question.id)] = "This field is required.";
       }
@@ -187,14 +199,33 @@ const SurveyResponsePage = () => {
   if (submitted) {
     return (
       <PageReveal asChild>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 flex items-center justify-center">
-          <Card className="max-w-lg w-full p-8 text-center space-y-3 border-emerald-200 bg-emerald-50">
-            <h2 className="text-2xl font-semibold text-emerald-800">
-              Response sent successfully
-            </h2>
-            <p className="text-emerald-700">
-              Thanks for taking the time to provide your precious feedback.
-            </p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 p-6 flex items-center justify-center">
+          <Card className="max-w-xl w-full p-8 text-center space-y-4 border-slate-200 bg-white/90 shadow-2xl">
+            <div className="flex items-center justify-center">
+              <motion.div
+                className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-600 flex items-center justify-center shadow-lg"
+                style={{ transformStyle: "preserve-3d" }}
+                animate={{ rotateY: [0, 180, 360] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Check className="w-8 h-8 text-white" />
+              </motion.div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold text-slate-900">
+                Response sent successfully
+              </h2>
+              <p className="text-slate-600">
+                Thanks for taking the time to provide your feedback. We appreciate it.
+              </p>
+            </div>
+            <div className="flex justify-center pt-2">
+              <Link to="/">
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+                  Go back to home
+                </Button>
+              </Link>
+            </div>
           </Card>
         </div>
       </PageReveal>
@@ -219,32 +250,36 @@ const SurveyResponsePage = () => {
                 <h2 className="text-xl font-semibold">{asDisplayString(currentPage.title)}</h2>
                 <p className="text-slate-600">{asDisplayString(currentPage.description)}</p>
               </div>
-              {(currentPage.questions ?? [])
-                .slice()
-                .sort((a: any, b: any) => Number(a.order) - Number(b.order))
-                .map((question: any) => {
-                  const questionId = String(question.id);
-                  return (
-                    <SurveyQuestionField
-                      key={questionId}
-                      question={question}
-                      value={answers[questionId] ?? ""}
-                      error={validationErrors[questionId]}
-                      onChange={(value) => {
-                        setAnswers((prev) => ({
-                          ...prev,
-                          [questionId]: value,
-                        }));
-                        setValidationErrors((prev) => {
-                          if (!prev[questionId]) return prev;
-                          const next = { ...prev };
-                          delete next[questionId];
-                          return next;
-                        });
-                      }}
-                    />
-                  );
-                })}
+              <ScrollArea className="max-h-[70vh] pr-2">
+                <div className="space-y-5">
+                  {(currentPage.questions ?? [])
+                    .slice()
+                    .sort((a: any, b: any) => Number(a.order) - Number(b.order))
+                    .map((question: any) => {
+                      const questionId = String(question.id);
+                      return (
+                        <SurveyQuestionField
+                          key={questionId}
+                          question={question}
+                          value={answers[questionId] ?? ""}
+                          error={validationErrors[questionId]}
+                          onChange={(value) => {
+                            setAnswers((prev) => ({
+                              ...prev,
+                              [questionId]: value,
+                            }));
+                            setValidationErrors((prev) => {
+                              if (!prev[questionId]) return prev;
+                              const next = { ...prev };
+                              delete next[questionId];
+                              return next;
+                            });
+                          }}
+                        />
+                      );
+                    })}
+                </div>
+              </ScrollArea>
             </Card>
           )}
 

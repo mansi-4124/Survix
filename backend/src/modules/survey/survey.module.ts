@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { SurveyController } from './survey.controller';
@@ -20,8 +20,8 @@ import { SURVEY_TOKENS } from './survey.tokens';
     PrismaModule,
     RedisModule,
     EmailModule,
-    AuthModule,
-    OrganizationModule,
+    forwardRef(() => AuthModule),
+    forwardRef(() => OrganizationModule),
   ],
   controllers: [SurveyController],
   providers: [

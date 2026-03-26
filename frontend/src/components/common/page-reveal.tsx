@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { motion, type MotionProps } from "motion/react";
+import { motion, type MotionProps, type Transition } from "motion/react";
 
 type PageRevealProps = MotionProps &
   React.HTMLAttributes<HTMLDivElement> & {
@@ -12,7 +12,10 @@ type PageRevealProps = MotionProps &
 const MotionSlot = motion(Slot);
 const defaultInitial = { opacity: 0, y: 16 };
 const defaultAnimate = { opacity: 1, y: 0 };
-const defaultTransition = { duration: 0.3, ease: "easeOut" };
+const defaultTransition: Transition = {
+  duration: 0.3,
+  ease: [0.16, 1, 0.3, 1],
+};
 
 const PageReveal = React.forwardRef<HTMLDivElement, PageRevealProps>(
   (
@@ -43,7 +46,7 @@ const PageReveal = React.forwardRef<HTMLDivElement, PageRevealProps>(
     }
 
     const resolvedInitial = shouldAnimate ? initial ?? defaultInitial : false;
-    const resolvedTransition = shouldAnimate
+    const resolvedTransition: Transition = shouldAnimate
       ? transition ?? defaultTransition
       : { duration: 0 };
 

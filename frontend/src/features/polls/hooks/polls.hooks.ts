@@ -38,7 +38,6 @@ export const usePollForLiveView = (pollId?: string) =>
     queryKey: pollId ? pollsKeys.detail(pollId) : pollsKeys.detail("unknown"),
     queryFn: () => pollsApi.getPollForLiveView(pollId as string),
     enabled: Boolean(pollId),
-    refetchInterval: 5000,
   });
 
 export const usePollForJoinByCode = (code?: string) =>
