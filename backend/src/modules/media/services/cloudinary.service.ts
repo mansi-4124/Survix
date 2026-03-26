@@ -31,7 +31,6 @@ export class CloudinaryService {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
-    console.log(cloudName, apiKey, apiSecret);
     if (!cloudName || !apiKey || !apiSecret) {
       throw new BadRequestException(
         'Cloudinary credentials are missing. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in the backend environment.',

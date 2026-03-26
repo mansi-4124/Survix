@@ -15,7 +15,28 @@ async function bootstrap() {
       ? requestTimeoutMs
       : 15000;
 
-  app.enableCors({ origin: true, credentials: true });
+  const frontendUrl = process.env.FRONTEND_URL;
+  const allowlist = new Set<string>();
+  if (frontendUrl) {
+    allowlist.add(frontendUrl);
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    allowlist.add('http://localhost:5173');
+    allowlist.add('http://127.0.0.1:5173');
+  }
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowlist.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+  });
 
   app.use(cookieParser.default());
 

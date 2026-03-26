@@ -17,6 +17,9 @@ export default Joi.object({
   EMAIL_SERVICE: Joi.string().default('gmail'),
   EMAIL_USER: Joi.string().allow('', null),
   EMAIL_PASSWORD: Joi.string().allow('', null),
+  CLOUDINARY_CLOUD_NAME: Joi.string().required(),
+  CLOUDINARY_API_KEY: Joi.string().required(),
+  CLOUDINARY_API_SECRET: Joi.string().required(),
   POLL_SURGE_THRESHOLD: Joi.number().integer().min(1).default(5),
   POLL_MOMENTUM_INTERVAL_MS: Joi.number().integer().min(1000).default(5000),
 });
