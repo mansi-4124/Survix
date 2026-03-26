@@ -416,6 +416,7 @@ const SurveyPage = () => {
     survey?.visibility === "PUBLIC" && surveyId
       ? `${window.location.origin}/respond/${surveyId}`
       : "";
+  const privateResultsLink = surveyId ? `/app/surveys/${surveyId}/results` : "";
 
   useEffect(() => {
     if (!survey || !canManageSurvey) return;
@@ -630,7 +631,11 @@ const SurveyPage = () => {
             isDuplicatePending={duplicateSurvey.isPending}
             publicLink={publicLink}
             onPublish={() => surveyId && publishSurvey.mutate(surveyId)}
-            onClose={() => surveyId && closeSurvey.mutate(surveyId)}
+            onClose={async () => {
+              if (!surveyId) return;
+              await closeSurvey.mutateAsync(surveyId);
+              navigate(`/app/surveys/${surveyId}/results`);
+            }}
             onDuplicate={async () => {
               if (!surveyId) return;
               const result = await duplicateSurvey.mutateAsync(surveyId);
@@ -646,6 +651,16 @@ const SurveyPage = () => {
               navigate("/app/surveys");
             }}
           />
+          {privateResultsLink && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => navigate(privateResultsLink)}
+              >
+                View Private Results
+              </Button>
+            </div>
+          )}
 
           {isReadOnly && (
             <Card className="p-4 border-amber-200 bg-amber-50 text-amber-900">
@@ -1012,15 +1027,39 @@ const SurveyPage = () => {
               )}
 
               <div className="space-y-2">
-                {(members ?? []).map((member) => (
+              {(members ?? []).map((member) => (
                   <div
                     key={member.userId}
                   >
                   <Card className="p-3 border-slate-200">
                     <div className="space-y-2">
-                      <p className="font-medium">
-                        {asDisplayString(member.user?.name, member.user?.email)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {member.user?.avatar ? (
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100">
+                            <img
+                              src={member.user.avatar}
+                              alt={asDisplayString(
+                                member.user?.name,
+                                asDisplayString(member.user?.email, "Member"),
+                              )}
+                              className="h-full w-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-semibold">
+                            {asDisplayString(
+                              member.user?.name,
+                              asDisplayString(member.user?.email, "U"),
+                            )
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                        )}
+                        <p className="font-medium">
+                          {asDisplayString(member.user?.name, member.user?.email)}
+                        </p>
+                      </div>
                       <p className="text-xs text-slate-500">
                         {asDisplayString(member.user?.email, member.userId)}
                       </p>

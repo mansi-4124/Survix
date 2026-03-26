@@ -11,6 +11,7 @@ import type { OrganizationDtoResponse } from '../models/OrganizationDtoResponse'
 import type { OrganizationMemberDtoResponse } from '../models/OrganizationMemberDtoResponse';
 import type { OrganizationSummaryDtoResponse } from '../models/OrganizationSummaryDtoResponse';
 import type { OrganizationUserSearchDtoResponse } from '../models/OrganizationUserSearchDtoResponse';
+import type { PublicOrganizationDtoResponse } from '../models/PublicOrganizationDtoResponse';
 import type { TransferOwnershipDtoRequest } from '../models/TransferOwnershipDtoRequest';
 import type { UpdateOrganizationDtoRequest } from '../models/UpdateOrganizationDtoRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -53,6 +54,23 @@ export class OrganizationsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/organizations/personal',
+        });
+    }
+    /**
+     * Get public organization profile
+     * @param slug
+     * @returns PublicOrganizationDtoResponse
+     * @throws ApiError
+     */
+    public static organizationControllerGetPublicOrganizationProfile(
+        slug: string,
+    ): CancelablePromise<PublicOrganizationDtoResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/public/{slug}',
+            path: {
+                'slug': slug,
+            },
         });
     }
     /**
@@ -105,6 +123,23 @@ export class OrganizationsService {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/organizations/{orgId}',
+            path: {
+                'orgId': orgId,
+            },
+        });
+    }
+    /**
+     * Upload organization logo
+     * @param orgId
+     * @returns OrganizationDtoResponse
+     * @throws ApiError
+     */
+    public static organizationControllerUploadOrganizationLogo(
+        orgId: string,
+    ): CancelablePromise<OrganizationDtoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/organizations/{orgId}/logo',
             path: {
                 'orgId': orgId,
             },

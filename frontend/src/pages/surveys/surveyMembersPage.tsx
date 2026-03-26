@@ -121,13 +121,37 @@ const SurveyMembersPage = () => {
           <div className="divide-y divide-slate-200">
             {(members ?? []).map((member) => (
               <div key={member.userId} className="p-5 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">
-                    {asDisplayString(member.user?.name, asDisplayString(member.user?.email, member.userId))}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    {asDisplayString(member.user?.email, member.userId)}
-                  </p>
+                <div className="flex items-center gap-3">
+                  {member.user?.avatar ? (
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
+                      <img
+                        src={member.user.avatar}
+                        alt={asDisplayString(
+                          member.user?.name,
+                          asDisplayString(member.user?.email, "Member"),
+                        )}
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-semibold">
+                      {asDisplayString(
+                        member.user?.name,
+                        asDisplayString(member.user?.email, "U"),
+                      )
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium">
+                      {asDisplayString(member.user?.name, asDisplayString(member.user?.email, member.userId))}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      {asDisplayString(member.user?.email, member.userId)}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline">{member.role}</Badge>

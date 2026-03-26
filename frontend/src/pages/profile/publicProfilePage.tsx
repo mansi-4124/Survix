@@ -1,4 +1,5 @@
-﻿import { Link, useParams } from "react-router-dom";
+import { useMemo } from "react";
+import { Link, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageReveal } from "@/components/common/page-reveal";
@@ -8,8 +9,27 @@ import { usePublicUserProfile } from "@/features/profile/hooks";
 import { asDisplayString } from "@/lib/normalize";
 
 const PublicProfilePage = () => {
-  const { username } = useParams();
+  const { username: rawUsername } = useParams();
+  const username = useMemo(() => {
+    if (!rawUsername) return undefined;
+    try {
+      return decodeURIComponent(rawUsername).trim() || undefined;
+    } catch {
+      return rawUsername.trim() || undefined;
+    }
+  }, [rawUsername]);
+
   const { data, isLoading, isError } = usePublicUserProfile(username);
+
+  if (!username) {
+    return (
+      <PageStateCard
+        className="m-6"
+        tone="error"
+        description="Missing profile username."
+      />
+    );
+  }
 
   if (isLoading) {
     return <PageStateCard className="m-6" description="Loading profile..." />;
@@ -203,5 +223,6 @@ const PublicProfilePage = () => {
 };
 
 export default PublicProfilePage;
+
 
 

@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { asDisplayString } from "@/lib/normalize";
 
 export const SiteHeader = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
   const authHiddenRoutes = [
     "/login",
@@ -93,6 +94,26 @@ export const SiteHeader = () => {
               </Link>
               <Link to="/app">
                 <Button size="sm">Go to App</Button>
+              </Link>
+              <Link to="/app/profile" className="flex items-center">
+                <button
+                  type="button"
+                  className="h-9 w-9 rounded-full border border-slate-200 bg-white flex items-center justify-center overflow-hidden"
+                  aria-label="Open profile"
+                >
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar.toString()}
+                      alt={asDisplayString(user?.name, "Profile")}
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-600">
+                      {(user?.name ?? user?.email ?? "U").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </button>
               </Link>
             </>
           ) : (

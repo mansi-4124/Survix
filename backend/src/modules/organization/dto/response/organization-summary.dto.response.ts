@@ -19,6 +19,13 @@ export class OrganizationSummaryDtoResponse {
   slug: string;
 
   @ApiProperty({
+    example: 'https://cdn.app.com/org-logo.png',
+    required: false,
+    nullable: true,
+  })
+  logoUrl?: string | null;
+
+  @ApiProperty({
     enum: OrganizationRoleDomain,
   })
   role: OrganizationRoleDomain;

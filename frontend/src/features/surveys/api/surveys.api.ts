@@ -197,13 +197,20 @@ export const surveysApi = {
       await SurveysService.surveyControllerMoveQuestion(questionId, data),
     ),
 
-  getSurveyStructure: async (surveyId: string, token?: string | null) =>
+  getSurveyStructure: async (
+    surveyId: string,
+    token?: string | null,
+    resultsMode?: boolean,
+  ) =>
     unwrapApiResponse<any>(
       await request(OpenAPI, {
         method: "GET",
         url: "/surveys/{surveyId}/structure",
         path: { surveyId },
-        ...(token ? { query: { token } } : {}),
+        query: {
+          ...(token ? { token } : {}),
+          ...(resultsMode ? { results: "true" } : {}),
+        },
       }),
     ),
 };

@@ -28,6 +28,7 @@ import { useActiveOrganization } from "@/features/organization/hooks/useActiveOr
 import { useOrganizationDetails } from "@/features/organization/hooks/useOrganizationDetails";
 import { useAcceptInvite } from "@/features/organization/hooks/useAcceptInvite";
 import { useOrganizationStore } from "@/features/organization/store/organization.store";
+import { asDisplayString } from "@/lib/normalize";
 import { toast } from "@/lib/toast";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useEffect, useRef, useState } from "react";
@@ -198,7 +199,7 @@ export const AppLayout = () => {
               )}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
               <Building2 className="w-4 h-4" />
               <Select
@@ -246,6 +247,26 @@ export const AppLayout = () => {
               <LogOut className="w-4 h-4 mr-2" />
               {user?.email ?? "Logout"}
             </Button>
+            <Link to="/app/profile" className="flex items-center">
+              <button
+                type="button"
+                className="h-9 w-9 rounded-full border border-slate-200 bg-white flex items-center justify-center overflow-hidden"
+                aria-label="Open profile"
+              >
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar.toString()}
+                      alt={asDisplayString(user?.name, "Profile")}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="text-xs font-semibold text-slate-600">
+                    {(user?.name ?? user?.email ?? "U").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </button>
+            </Link>
           </div>
         </div>
       </header>

@@ -14,6 +14,7 @@ import { PageStateCard } from "@/components/common/page-state-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useGlobalSearch } from "@/features/search/hooks";
+import { usePublicSurveys } from "@/features/surveys/hooks";
 import { asDisplayString } from "@/lib/normalize";
 
 const SearchPage = () => {
@@ -24,12 +25,41 @@ const SearchPage = () => {
   const hasQuery = trimmedQuery.length > 0;
 
   const { data, isLoading, isError } = useGlobalSearch(trimmedQuery, 6);
+  const { data: publicSurveys } = usePublicSurveys(hasQuery ? trimmedQuery : undefined);
 
-  const surveys = data?.surveys ?? [];
+  const surveys = (() => {
+    const base = data?.surveys ?? [];
+    const publicItems = (publicSurveys ?? []).map((survey) => ({
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      visibility: survey.visibility,
+      status: "PUBLISHED",
+      allowAnonymous: survey.allowAnonymous,
+      randomizeQuestions: survey.randomizeQuestions,
+      createdAt: survey.createdAt,
+      startsAt: null,
+      endsAt: null,
+      hasResponded: survey.hasResponded,
+    }));
+    const seen = new Set(base.map((survey) => survey.id));
+    const merged = [...base];
+    publicItems.forEach((survey) => {
+      if (!seen.has(survey.id)) {
+        merged.push(survey);
+      }
+    });
+    return merged;
+  })();
   const polls = data?.polls ?? [];
   const organizations = data?.organizations ?? [];
   const users = data?.users ?? [];
-  const counts = data?.counts;
+  const counts = data?.counts ?? {
+    surveys: surveys.length,
+    polls: polls.length,
+    organizations: organizations.length,
+    users: users.length,
+  };
   const now = Date.now();
 
   const hasAnyResults =
@@ -61,7 +91,7 @@ const SearchPage = () => {
           </Card>
         ) : isLoading ? (
           <PageStateCard description="Searching the Survix directory..." />
-        ) : isError ? (
+        ) : isError && !hasAnyResults ? (
           <PageStateCard tone="error" description="Unable to load search results." />
         ) : !hasAnyResults ? (
           <Card className="p-8 border-slate-200 text-sm text-slate-600">
@@ -256,11 +286,15 @@ const SearchPage = () => {
                             const isClosed =
                               survey.status === "CLOSED" ||
                               (typeof endsAt === "number" && endsAt <= now);
+                            const resultsPath =
+                              survey.visibility === "PRIVATE"
+                                ? `/app/surveys/${survey.id}/results`
+                                : `/survey/results/${survey.id}`;
                             return (
                               <Link
                                 to={
                                   isClosed
-                                    ? `/survey/results/${survey.id}`
+                                    ? resultsPath
                                     : `/respond/${survey.id}`
                                 }
                                 className="text-xs text-indigo-600 font-medium"
@@ -466,11 +500,15 @@ const SearchPage = () => {
                           const isClosed =
                             survey.status === "CLOSED" ||
                             (typeof endsAt === "number" && endsAt <= now);
+                          const resultsPath =
+                            survey.visibility === "PRIVATE"
+                              ? `/app/surveys/${survey.id}/results`
+                              : `/survey/results/${survey.id}`;
                           return (
                             <Link
                               to={
                                 isClosed
-                                  ? `/survey/results/${survey.id}`
+                                  ? resultsPath
                                   : `/respond/${survey.id}`
                               }
                               className="text-xs text-indigo-600 font-medium"

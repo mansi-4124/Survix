@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { History, Plus, Radio, Users } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageStateCard } from "@/components/common/page-state-card";
@@ -27,7 +28,12 @@ const PollsPage = () => {
   return (
     <PageReveal asChild>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between gap-4 flex-wrap"
+        >
           <div>
             <h1 className="text-3xl font-bold">Live Polls</h1>
             <p className="text-slate-600">
@@ -40,9 +46,14 @@ const PollsPage = () => {
               Create Poll
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="grid md:grid-cols-3 gap-4"
+        >
           <Card className="p-5 border-slate-200">
             <p className="text-sm text-slate-600">Total Polls</p>
             <p className="text-3xl font-bold mt-1">{source.length}</p>
@@ -59,9 +70,14 @@ const PollsPage = () => {
               {totalVotes}
             </p>
           </Card>
-        </div>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="grid md:grid-cols-2 gap-4"
+        >
           <Card className="p-6 border-0 bg-gradient-to-br from-cyan-500 to-indigo-600 text-white">
             <h3 className="text-xl font-semibold flex items-center gap-2">
               <Radio className="w-5 h-5" /> Create a Poll
@@ -91,9 +107,13 @@ const PollsPage = () => {
               Join Poll
             </Button>
           </Card>
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Recent Polls</h2>
             <Link to="/app/polls/history">
@@ -124,7 +144,7 @@ const PollsPage = () => {
               ))}
             </div>
           ) : null}
-        </div>
+        </motion.div>
       </div>
     </PageReveal>
   );

@@ -84,12 +84,18 @@ export class SurveyAccessGuard implements CanActivate {
 
     const now = new Date();
     const accessToken = request.query?.token as string | undefined;
+    const resultsMode = request.query?.results === 'true';
+
+    const isPublishedForAccess = resultsMode
+      ? survey.status === SurveyStatus.PUBLISHED ||
+        survey.status === SurveyStatus.CLOSED
+      : survey.status === SurveyStatus.PUBLISHED;
 
     if (accessToken) {
-      if (survey.status !== SurveyStatus.PUBLISHED) {
+      if (!isPublishedForAccess) {
         throw new ForbiddenException('Survey is not published');
       }
-      if (survey.endDate && survey.endDate <= now) {
+      if (survey.endDate && survey.endDate <= now && !resultsMode) {
         throw new ForbiddenException('Survey has ended');
       }
 
@@ -127,10 +133,10 @@ export class SurveyAccessGuard implements CanActivate {
 
     if (survey.visibility === SurveyVisibility.PUBLIC) {
       // Public surveys are only accessible once published for non-members.
-      if (survey.status !== SurveyStatus.PUBLISHED) {
+      if (!isPublishedForAccess) {
         throw new ForbiddenException('Survey is not published');
       }
-      if (survey.endDate && survey.endDate <= now) {
+      if (survey.endDate && survey.endDate <= now && !resultsMode) {
         throw new ForbiddenException('Survey has ended');
       }
 

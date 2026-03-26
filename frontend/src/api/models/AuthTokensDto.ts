@@ -8,9 +8,9 @@ export type AuthTokensDto = {
      */
     accessToken: string;
     /**
-     * JWT refresh token (httpOnly cookie is preferred)
+     * JWT refresh token. Prefer using the httpOnly cookie; this field may be omitted by configuration.
      */
-    refreshToken: string;
+    refreshToken?: string;
     /**
      * Access token expiration in seconds
      */

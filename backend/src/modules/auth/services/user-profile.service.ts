@@ -19,10 +19,15 @@ export class UserProfileService {
   ) {}
 
   async getPublicProfile(usernameOrId: string): Promise<PublicUserProfileDtoResponse> {
+    const trimmed = usernameOrId?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('Username is required');
+    }
+    const isObjectId = Boolean(trimmed && /^[0-9a-fA-F]{24}$/.test(trimmed));
     const user = await this.prisma.user.findFirst({
       where: {
         status: UserStatus.ACTIVE,
-        OR: [{ username: usernameOrId }, { id: usernameOrId }],
+        ...(isObjectId ? { id: trimmed } : { username: trimmed }),
       },
     });
 

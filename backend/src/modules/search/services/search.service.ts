@@ -35,7 +35,7 @@ export class SearchService {
 
     const surveyWhere = {
       visibility: SurveyVisibility.PUBLIC,
-      status: SurveyStatus.PUBLISHED,
+      status: { in: [SurveyStatus.PUBLISHED, SurveyStatus.CLOSED] },
       AND: [notDeleted, { OR: [{ title: textFilter }, { description: textFilter }] }],
     };
 

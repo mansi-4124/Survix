@@ -232,6 +232,47 @@ const SurveyResponsePage = () => {
     );
   }
 
+  const isClosed =
+    survey.status === "CLOSED" ||
+    (survey.endsAt ? new Date(survey.endsAt).getTime() <= Date.now() : false);
+  const visibility = (survey as any).visibility ?? "PUBLIC";
+  const closedTarget = isClosed
+    ? visibility === "PUBLIC"
+      ? `/survey/results/${surveyId}`
+      : `/app/surveys/${surveyId}/results`
+    : null;
+
+  useEffect(() => {
+    if (!closedTarget) return;
+    const timeoutId = window.setTimeout(() => {
+      navigate(closedTarget, { replace: true });
+    }, 800);
+    return () => window.clearTimeout(timeoutId);
+  }, [closedTarget, navigate]);
+
+  if (isClosed) {
+    return (
+      <PageReveal asChild>
+        <div className="min-h-screen p-6 flex items-center justify-center bg-slate-50">
+          <Card className="p-6 border-slate-200 text-slate-700 text-center space-y-3">
+            <h3 className="text-lg font-semibold">Survey is closed</h3>
+            <p>Results are now available for this survey.</p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (closedTarget) {
+                  navigate(closedTarget);
+                }
+              }}
+            >
+              View results
+            </Button>
+          </Card>
+        </div>
+      </PageReveal>
+    );
+  }
+
   return (
     <PageReveal asChild>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">

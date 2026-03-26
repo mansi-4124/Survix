@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Mail, UserPlus, UserX } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -190,7 +191,12 @@ const OrganizationPage = () => {
   return (
     <PageReveal asChild>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between flex-wrap gap-3"
+        >
           <div>
             <h1 className="text-3xl font-bold mb-2">Organization</h1>
             <p className="text-slate-600">
@@ -277,7 +283,7 @@ const OrganizationPage = () => {
               </Dialog>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {currentRole === "OWNER" && otherOwners.length === 0 && (
           <Card className="p-4 border-amber-300 bg-amber-50 text-amber-800">
@@ -286,14 +292,25 @@ const OrganizationPage = () => {
           </Card>
         )}
 
-        <OrganizationDetails
-          organization={organization}
-          allowEditOrg={allowEditOrg}
-          activeMembers={activeMembers}
-          totalMembers={totalMembers}
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+        >
+          <OrganizationDetails
+            organization={organization}
+            allowEditOrg={allowEditOrg}
+            activeMembers={activeMembers}
+            totalMembers={totalMembers}
+          />
+        </motion.div>
 
-        <Card className="border-slate-200">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <Card className="border-slate-200">
           <div className="p-6 border-b border-slate-200 flex items-center justify-between gap-4 flex-wrap">
             <h3 className="text-lg font-bold">Team Members</h3>
             <div className="flex items-center gap-3">
@@ -605,6 +622,7 @@ const OrganizationPage = () => {
             ))}
           </div>
         </Card>
+        </motion.div>
       </div>
     </PageReveal>
   );

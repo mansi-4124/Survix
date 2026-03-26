@@ -6,6 +6,7 @@ export type OrganizationSummaryDtoResponse = {
     id: string;
     name: string;
     slug: string;
+    logoUrl?: Record<string, any> | null;
     role: OrganizationSummaryDtoResponse.role;
     status: OrganizationSummaryDtoResponse.status;
     accountType: OrganizationSummaryDtoResponse.accountType;

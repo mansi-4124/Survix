@@ -103,12 +103,17 @@ export const useSurveyForView = (surveyId?: string) =>
     enabled: Boolean(surveyId),
   });
 
-export const useSurveyStructure = (surveyId?: string, token?: string | null) =>
+export const useSurveyStructure = (
+  surveyId?: string,
+  token?: string | null,
+  resultsMode?: boolean,
+) =>
   useQuery({
     queryKey: surveyId
-      ? [...surveysKeys.structure(surveyId), token ?? ""]
+      ? [...surveysKeys.structure(surveyId), token ?? "", resultsMode ? "results" : ""]
       : surveysKeys.structure("unknown"),
-    queryFn: () => surveysApi.getSurveyStructure(surveyId as string, token),
+    queryFn: () =>
+      surveysApi.getSurveyStructure(surveyId as string, token, resultsMode),
     enabled: Boolean(surveyId),
   });
 

@@ -11,7 +11,11 @@ import { asDisplayString } from "@/lib/normalize";
 
 const SurveyPublicResultsPage = () => {
   const { surveyId } = useParams();
-  const { data: survey, isLoading, isError } = useSurveyStructure(surveyId);
+  const { data: survey, isLoading, isError } = useSurveyStructure(
+    surveyId,
+    undefined,
+    true,
+  );
 
   const pages = useMemo(
     () =>
@@ -38,7 +42,11 @@ const SurveyPublicResultsPage = () => {
   const status = survey.status ?? "CLOSED";
   const responseCount = Number((survey as any).responsesCount ?? 0);
   const closedAt = (survey as any).endsAt ?? (survey as any).endDate;
-  const isClosed = status === "CLOSED";
+  const endsAtValue = (survey as any).endsAt ?? (survey as any).endDate;
+  const endsAt = endsAtValue ? new Date(endsAtValue).getTime() : null;
+  const isClosed =
+    status === "CLOSED" ||
+    (typeof endsAt === "number" && endsAt <= Date.now());
 
   if (!isClosed) {
     return (

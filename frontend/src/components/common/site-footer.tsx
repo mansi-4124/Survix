@@ -17,27 +17,36 @@ export const SiteFooter = () => (
             Research, feedback, and live engagement in one workspace.
           </p>
           <a
-            href="mailto:survix.team@gmail.com"
+            href="mailto:survix.official@gmail.com"
             className="text-sm text-indigo-200 hover:text-white transition-colors"
           >
-            survix.team@gmail.com
+            survix.official@gmail.com
           </a>
         </div>
         <div>
           <h3 className="text-white font-medium mb-4">Explore</h3>
           <ul className="space-y-2 text-sm">
             <li>
-              <Link to="/app/surveys" className="hover:text-white transition-colors">
+              <Link
+                to="/app/surveys"
+                className="hover:text-white transition-colors"
+              >
                 Surveys
               </Link>
             </li>
             <li>
-              <Link to="/app/polls" className="hover:text-white transition-colors">
+              <Link
+                to="/app/polls"
+                className="hover:text-white transition-colors"
+              >
                 Polls
               </Link>
             </li>
             <li>
-              <Link to="/app/organization" className="hover:text-white transition-colors">
+              <Link
+                to="/app/organization"
+                className="hover:text-white transition-colors"
+              >
                 Organization
               </Link>
             </li>
@@ -47,7 +56,10 @@ export const SiteFooter = () => (
           <h3 className="text-white font-medium mb-4">Resources</h3>
           <ul className="space-y-2 text-sm">
             <li>
-              <Link to="/app/profile" className="hover:text-white transition-colors">
+              <Link
+                to="/app/profile"
+                className="hover:text-white transition-colors"
+              >
                 Profile
               </Link>
             </li>

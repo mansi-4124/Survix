@@ -5,10 +5,12 @@
 import type { AddSurveyMemberDtoRequest } from '../models/AddSurveyMemberDtoRequest';
 import type { CreateQuestionDtoRequest } from '../models/CreateQuestionDtoRequest';
 import type { CreateSurveyDtoRequest } from '../models/CreateSurveyDtoRequest';
+import type { CreateSurveyPageDtoRequest } from '../models/CreateSurveyPageDtoRequest';
 import type { MoveQuestionDtoRequest } from '../models/MoveQuestionDtoRequest';
 import type { ReorderQuestionsDtoRequest } from '../models/ReorderQuestionsDtoRequest';
 import type { UpdateQuestionDtoRequest } from '../models/UpdateQuestionDtoRequest';
 import type { UpdateSurveyDtoRequest } from '../models/UpdateSurveyDtoRequest';
+import type { UpdateSurveyPageDtoRequest } from '../models/UpdateSurveyPageDtoRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -26,6 +28,16 @@ export class SurveysService {
             url: '/surveys',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @returns any
+     * @throws ApiError
+     */
+    public static surveyControllerGetMySurveys(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/surveys/my',
         });
     }
     /**
@@ -160,6 +172,42 @@ export class SurveysService {
     }
     /**
      * @param surveyId
+     * @returns any
+     * @throws ApiError
+     */
+    public static surveyControllerListMembers(
+        surveyId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/surveys/{surveyId}/members',
+            path: {
+                'surveyId': surveyId,
+            },
+        });
+    }
+    /**
+     * @param surveyId
+     * @param requestBody
+     * @returns any
+     * @throws ApiError
+     */
+    public static surveyControllerCreatePage(
+        surveyId: string,
+        requestBody: CreateSurveyPageDtoRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/surveys/{surveyId}/pages',
+            path: {
+                'surveyId': surveyId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param surveyId
      * @param userId
      * @returns any
      * @throws ApiError
@@ -246,6 +294,42 @@ export class SurveysService {
             url: '/questions/{questionId}',
             path: {
                 'questionId': questionId,
+            },
+        });
+    }
+    /**
+     * @param pageId
+     * @param requestBody
+     * @returns any
+     * @throws ApiError
+     */
+    public static surveyControllerUpdatePage(
+        pageId: string,
+        requestBody: UpdateSurveyPageDtoRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/pages/{pageId}',
+            path: {
+                'pageId': pageId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param pageId
+     * @returns any
+     * @throws ApiError
+     */
+    public static surveyControllerDeletePage(
+        pageId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/pages/{pageId}',
+            path: {
+                'pageId': pageId,
             },
         });
     }
