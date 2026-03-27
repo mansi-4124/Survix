@@ -55,6 +55,15 @@ const SurveyResponsePage = () => {
   );
   const currentPage = pages[pageIndex];
   const progress = pages.length > 0 ? ((pageIndex + 1) / pages.length) * 100 : 0;
+  const isClosed =
+    survey?.status === "CLOSED" ||
+    (survey?.endsAt ? new Date(survey.endsAt).getTime() <= Date.now() : false);
+  const visibility = (survey as any)?.visibility ?? "PUBLIC";
+  const closedTarget = isClosed
+    ? visibility === "PUBLIC"
+      ? `/survey/results/${surveyId}`
+      : `/app/surveys/${surveyId}/results`
+    : null;
 
   useEffect(() => {
     if (!token) return;
@@ -63,6 +72,14 @@ const SurveyResponsePage = () => {
       navigate("/login", { replace: true, state: { from: location } });
     }
   }, [token, hasHydrated, isInitializing, isAuthenticated, navigate, location]);
+
+  useEffect(() => {
+    if (!closedTarget) return;
+    const timeoutId = window.setTimeout(() => {
+      navigate(closedTarget, { replace: true });
+    }, 800);
+    return () => window.clearTimeout(timeoutId);
+  }, [closedTarget, navigate]);
 
   const ensureResponse = async () => {
     if (responseId || !surveyId) {
@@ -231,24 +248,6 @@ const SurveyResponsePage = () => {
       </PageReveal>
     );
   }
-
-  const isClosed =
-    survey.status === "CLOSED" ||
-    (survey.endsAt ? new Date(survey.endsAt).getTime() <= Date.now() : false);
-  const visibility = (survey as any).visibility ?? "PUBLIC";
-  const closedTarget = isClosed
-    ? visibility === "PUBLIC"
-      ? `/survey/results/${surveyId}`
-      : `/app/surveys/${surveyId}/results`
-    : null;
-
-  useEffect(() => {
-    if (!closedTarget) return;
-    const timeoutId = window.setTimeout(() => {
-      navigate(closedTarget, { replace: true });
-    }, 800);
-    return () => window.clearTimeout(timeoutId);
-  }, [closedTarget, navigate]);
 
   if (isClosed) {
     return (

@@ -15,11 +15,15 @@ async function bootstrap() {
       ? requestTimeoutMs
       : 15000;
 
-  const frontendUrl = process.env.FRONTEND_URL;
   const allowlist = new Set<string>();
-  if (frontendUrl) {
-    allowlist.add(frontendUrl);
-  }
+  const frontendUrl = process.env.FRONTEND_URL;
+  const frontendUrls = process.env.FRONTEND_URLS;
+  [frontendUrl, frontendUrls]
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => allowlist.add(value));
   if (process.env.NODE_ENV !== 'production') {
     allowlist.add('http://localhost:5173');
     allowlist.add('http://127.0.0.1:5173');
