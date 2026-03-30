@@ -9,23 +9,21 @@ export const useAuthInit = () => {
     setInitializing,
     hasHydrated,
     setHasHydrated,
-    accessToken,
-    setAccessToken,
   } = useAuthStore();
   const initializedRef = useRef(false);
   const refreshWithTimeout = async (timeoutMs: number) => {
-    let timeoutId: number | undefined;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = window.setTimeout(() => {
-        reject(new Error("auth_refresh_timeout"));
-      }, timeoutMs);
-    });
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+    }, timeoutMs);
     try {
-      return await Promise.race([authApi.refresh(), timeoutPromise]);
-    } finally {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
+      const result = await authApi.refresh();
+      if (timedOut) {
+        throw new Error("auth_refresh_timeout");
       }
+      return result;
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   };
 
@@ -65,17 +63,8 @@ export const useAuthInit = () => {
     initializedRef.current = true;
 
     const initAuth = async () => {
-      const currentState = useAuthStore.getState();
-      const hasLocalSession = Boolean(currentState.user);
-
       try {
-        if (hasLocalSession) {
-          if (accessToken) {
-            setAccessToken(accessToken);
-          }
-        }
-
-        const refreshed = await refreshWithTimeout(8000);
+        const refreshed = await refreshWithTimeout(5000);
         const { user, tokens } = refreshed;
         setAuth(user, tokens?.accessToken);
       } catch (error) {
@@ -91,7 +80,5 @@ export const useAuthInit = () => {
     clearAuth,
     setInitializing,
     hasHydrated,
-    accessToken,
-    setAccessToken,
   ]);
 };

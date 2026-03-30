@@ -7,12 +7,12 @@ export function StrongPasswordField() {
     ApiProperty({
       description: 'User password',
       minLength: 8,
-      maxLength: 64,
+      maxLength: 20,
       example: 'StrongPassword123!',
     }),
     IsString(),
     MinLength(8),
-    MaxLength(64),
+    MaxLength(20),
     Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
       message:
         'Password must contain uppercase, lowercase, number and special character',

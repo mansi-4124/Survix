@@ -1,21 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { Label } from "@/components/ui/label";
 import { useVerifyEmail } from "@/features/auth/hooks/useVerifyEmail";
 import { verifyEmailSchema } from "@/features/auth/validation/auth.schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
-import { motion } from "motion/react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import type { z } from "zod";
-import { PageReveal } from "@/components/common/page-reveal";
+import {
+  AuthCard,
+  AuthHeader,
+  AuthLayout,
+  AuthSubmitButton,
+  OtpField,
+} from "@/features/auth/components";
 
 type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
 
@@ -52,115 +49,34 @@ const VerifyEmailPage = () => {
     );
   };
   return (
-    <PageReveal asChild>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-20 left-20 w-96 h-96 bg-indigo-300 rounded-full blur-3xl"
+    <AuthLayout>
+      <AuthCard>
+        <AuthHeader
+          title="Verify your email"
+          subtitle={
+            <>
+              We sent a verification code to
+              <br />
+              <span className="font-medium text-slate-900">{email}</span>
+            </>
+          }
+          icon={<Mail className="w-8 h-8 text-white" />}
         />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl"
-        />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md relative z-10"
-        >
-          <Card className="p-8 shadow-2xl border-slate-200/50 backdrop-blur-xl bg-white/95">
-            {/* Logo */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <img
-                src="/Survix_logo_transparent.png"
-                alt="Survix"
-                className="h-10 w-auto"
-              />
-            </div>
-          <>
-            <div className="text-center mb-8">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mx-auto mb-4"
-              >
-                <Mail className="w-8 h-8 text-white" />
-              </motion.div>
-              <h1 className="text-3xl font-bold mb-2">Verify your email</h1>
-              <p className="text-slate-600">
-                We sent a verification code to
-                <br />
-                <span className="font-medium text-slate-900">{email}</span>
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-2">
-                <Label className="text-center block">
-                  Enter verification code
-                </Label>
-                <Controller
-                  name="otp"
-                  control={control}
-                  rules={{ required: true, minLength: 6 }}
-                  render={({ field }) => (
-                    <div className="flex justify-center">
-                      <InputOTP
-                        maxLength={6}
-                        value={field.value}
-                        onChange={field.onChange}
-                      >
-                        <InputOTPGroup>
-                          {[...Array(6)].map((_, i) => (
-                            <InputOTPSlot
-                              key={i}
-                              index={i}
-                              className="w-12 h-14 text-lg"
-                            />
-                          ))}
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
-                  )}
-                ></Controller>
-                {errors.otp ? (
-                  <p className="text-xs text-red-600 text-center">
-                    {errors.otp.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  disabled={otp.length < 6}
-                >
-                  Verify & Continue
-                </Button>
-              </motion.div>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-indigo-600 hover:text-indigo-700"
-                >
-                  Didn't receive code? Resend
-                </button>
-              </div>
-            </form>
-          </>
-        </Card>
-        </motion.div>
-      </div>
-    </PageReveal>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <OtpField control={control} error={errors.otp} />
+          <AuthSubmitButton text="Verify & Continue" disabled={otp.length < 6} />
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-sm text-indigo-600 hover:text-indigo-700"
+            >
+              Didn't receive code? Resend
+            </button>
+          </div>
+        </form>
+      </AuthCard>
+    </AuthLayout>
   );
 };
 

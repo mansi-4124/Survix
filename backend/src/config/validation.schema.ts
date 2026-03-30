@@ -6,7 +6,10 @@ export default Joi.object({
   UPSTASH_REDIS_REST_TOKEN: Joi.string().required(),
   JWT_ACCESS_SECRET: Joi.string().required(),
   JWT_REFRESH_SECRET: Joi.string().required(),
+  JWT_ISSUER: Joi.string().allow('', null),
+  JWT_AUDIENCE: Joi.string().allow('', null),
   FRONTEND_URL: Joi.string().uri().required(),
+  COOKIE_DOMAIN: Joi.string().allow('', null),
   PORT: Joi.number().integer().min(1).max(65535).default(3000),
   NODE_ENV: Joi.string()
     .valid('development', 'test', 'production')

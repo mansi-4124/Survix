@@ -6,7 +6,6 @@ import { setAuthToken } from "@/lib/auth-token";
 interface AuthState {
   user: UserResponseDto | null;
   accessToken: string | null;
-  isAuthenticated: boolean;
   isInitializing: boolean;
   hasHydrated: boolean;
 
@@ -22,7 +21,6 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      isAuthenticated: false,
       isInitializing: true,
       hasHydrated: false,
 
@@ -30,7 +28,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           user,
           accessToken: accessToken ?? null,
-          isAuthenticated: true,
         });
         setAuthToken(accessToken);
       },
@@ -39,7 +36,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           accessToken: null,
-          isAuthenticated: false,
         });
         setAuthToken(null);
       },
@@ -62,8 +58,6 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
         setAuthToken(state?.accessToken ?? null);

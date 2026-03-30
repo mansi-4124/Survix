@@ -1,8 +1,4 @@
 import type { ForgotPasswordDto, ResetPasswordDto } from "@/api";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useForgotPassword } from "@/features/auth/hooks/useForgotPassword";
 import { useResetPassword } from "@/features/auth/hooks/useResetPassword";
 import {
@@ -10,13 +6,19 @@ import {
   resetPasswordSchema,
 } from "@/features/auth/validation/auth.schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock } from "lucide-react";
-import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import { z } from "zod";
-import { PageReveal } from "@/components/common/page-reveal";
+import {
+  AuthCard,
+  AuthFooter,
+  AuthHeader,
+  AuthLayout,
+  AuthSubmitButton,
+  EmailField,
+  PasswordField,
+} from "@/features/auth/components";
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
@@ -78,160 +80,69 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <PageReveal asChild>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6 relative overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-20 left-20 w-96 h-96 bg-indigo-300 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl"
+    <AuthLayout>
+      <AuthCard>
+        <AuthHeader
+          title={hasResetToken ? "Set a new password" : "Reset your password"}
+          subtitle={
+            hasResetToken
+              ? "Choose a strong password you have not used before."
+              : "We will email you a secure reset link."
+          }
         />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md relative z-10"
-        >
-          <Card className="p-8 shadow-2xl border-slate-200/50 backdrop-blur-xl bg-white/95">
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <img
-                src="/Survix_logo_transparent.png"
-                alt="Survix"
-                className="h-10 w-auto"
-              />
-            </div>
+        {hasResetToken ? (
+          <form
+            onSubmit={handleResetSubmit(onResetSubmit)}
+            className="space-y-4"
+          >
+            <PasswordField
+              register={registerReset}
+              name="newPassword"
+              label="New password"
+              autoComplete="new-password"
+              placeholder="New password"
+              error={resetErrors.newPassword}
+            />
+            <PasswordField
+              register={registerReset}
+              name="confirmPassword"
+              label="Confirm password"
+              autoComplete="new-password"
+              placeholder="Confirm password"
+              error={resetErrors.confirmPassword}
+            />
+            <AuthSubmitButton
+              text="Update password"
+              loading={resetPassword.isPending}
+              loadingText="Updating password..."
+            />
+          </form>
+        ) : (
+          <form
+            onSubmit={handleForgotSubmit(onForgotSubmit)}
+            className="space-y-4"
+          >
+            <EmailField
+              register={registerForgot}
+              error={forgotErrors.email}
+              placeholder="Enter your email"
+            />
+            <AuthSubmitButton
+              text="Send reset link"
+              loading={forgotPassword.isPending}
+              loadingText="Sending link..."
+            />
+          </form>
+        )}
 
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">
-              {hasResetToken ? "Set a new password" : "Reset your password"}
-            </h1>
-            <p className="text-slate-600">
-              {hasResetToken
-                ? "Choose a strong password you have not used before."
-                : "We will email you a secure reset link."}
-            </p>
-          </div>
-
-          {hasResetToken ? (
-            <form
-              onSubmit={handleResetSubmit(onResetSubmit)}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    {...registerReset("newPassword")}
-                    id="newPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="New password"
-                    className="pl-10 h-12"
-                    aria-invalid={!!resetErrors.newPassword}
-                    required
-                  />
-                </div>
-                {resetErrors.newPassword ? (
-                  <p className="text-xs text-red-600">
-                    {resetErrors.newPassword.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    {...registerReset("confirmPassword")}
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Confirm password"
-                    className="pl-10 h-12"
-                    aria-invalid={!!resetErrors.confirmPassword}
-                    required
-                  />
-                </div>
-                {resetErrors.confirmPassword ? (
-                  <p className="text-xs text-red-600">
-                    {resetErrors.confirmPassword.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  disabled={resetPassword.isPending}
-                >
-                  {resetPassword.isPending
-                    ? "Updating password..."
-                    : "Update password"}
-                </Button>
-              </motion.div>
-            </form>
-          ) : (
-            <form
-              onSubmit={handleForgotSubmit(onForgotSubmit)}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    {...registerForgot("email")}
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="Enter your email"
-                    className="pl-10 h-12"
-                    aria-invalid={!!forgotErrors.email}
-                    required
-                  />
-                </div>
-                {forgotErrors.email ? (
-                  <p className="text-xs text-red-600">
-                    {forgotErrors.email.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  disabled={forgotPassword.isPending}
-                >
-                  {forgotPassword.isPending
-                    ? "Sending link..."
-                    : "Send reset link"}
-                </Button>
-              </motion.div>
-            </form>
-          )}
-
-          <p className="text-center text-sm text-slate-600 mt-6">
-            Remembered your password?{" "}
-            <Link
-              to="/login"
-              className="text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              Back to login
-            </Link>
-          </p>
-        </Card>
-        </motion.div>
-      </div>
-    </PageReveal>
+        <AuthFooter
+          text="Remembered your password?"
+          link="/login"
+          linkText="Back to login"
+        />
+      </AuthCard>
+    </AuthLayout>
   );
 };
 

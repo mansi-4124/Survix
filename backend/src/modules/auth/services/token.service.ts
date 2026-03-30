@@ -14,6 +14,8 @@ export class TokenService implements ITokenService {
   constructor(private readonly jwtService: JwtService) {}
 
   async generateTokens(user: AuthUser, sessionId: string): Promise<AuthTokens> {
+    const issuer = (process.env.JWT_ISSUER || '').trim();
+    const audience = (process.env.JWT_AUDIENCE || '').trim();
     const accessPayload: TokenPayload = {
       sub: user.id,
       email: user.email,
@@ -32,11 +34,15 @@ export class TokenService implements ITokenService {
         secret: process.env.JWT_ACCESS_SECRET,
         expiresIn: this.accessTokenTTL,
         algorithm: 'HS256',
+        ...(issuer ? { issuer } : {}),
+        ...(audience ? { audience } : {}),
       }),
       this.jwtService.signAsync(refreshPayload, {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: this.refreshTokenTTL,
         algorithm: 'HS256',
+        ...(issuer ? { issuer } : {}),
+        ...(audience ? { audience } : {}),
       }),
     ]);
 
@@ -49,16 +55,24 @@ export class TokenService implements ITokenService {
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {
+    const issuer = (process.env.JWT_ISSUER || '').trim();
+    const audience = (process.env.JWT_AUDIENCE || '').trim();
     return this.jwtService.verifyAsync<TokenPayload>(token, {
       secret: process.env.JWT_ACCESS_SECRET,
       algorithms: ['HS256'],
+      ...(issuer ? { issuer } : {}),
+      ...(audience ? { audience } : {}),
     });
   }
 
   async verifyRefreshToken(token: string): Promise<TokenPayload> {
+    const issuer = (process.env.JWT_ISSUER || '').trim();
+    const audience = (process.env.JWT_AUDIENCE || '').trim();
     return this.jwtService.verifyAsync<TokenPayload>(token, {
       secret: process.env.JWT_REFRESH_SECRET,
       algorithms: ['HS256'],
+      ...(issuer ? { issuer } : {}),
+      ...(audience ? { audience } : {}),
     });
   }
 }

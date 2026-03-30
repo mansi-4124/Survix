@@ -25,6 +25,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
+import { EmailVerifiedGuard } from './guards/email-verified.guard';
+import { VerifiedJwtAuthGuard } from './guards/verified-jwt-auth.guard';
 import { UserProfileService } from './services/user-profile.service';
 
 @Module({
@@ -78,8 +80,11 @@ import { UserProfileService } from './services/user-profile.service';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    JwtAuthGuard,
     OptionalJwtAuthGuard,
+    EmailVerifiedGuard,
+    VerifiedJwtAuthGuard,
   ],
-  exports: [AuthService, OptionalJwtAuthGuard],
+  exports: [AuthService, OptionalJwtAuthGuard, EmailVerifiedGuard, VerifiedJwtAuthGuard],
 })
 export class AuthModule {}

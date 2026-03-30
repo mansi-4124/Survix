@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class LoginDto {
@@ -14,5 +14,6 @@ export class LoginDto {
     example: 'StrongPassword123!',
   })
   @IsString()
+  @IsNotEmpty()
   password: string;
 }

@@ -6,6 +6,8 @@ import { AUTH_TOKENS } from '../auth.tokens';
 
 @Injectable()
 export class SessionService {
+  private readonly maxSessionsPerUser = 5;
+
   constructor(
     @Inject(AUTH_TOKENS.SESSION_STORE)
     private readonly sessionStore: ISessionStore,
@@ -35,6 +37,11 @@ export class SessionService {
 
     const created = await this.sessionStore.create(session);
 
+    await this.sessionStore.deleteOldestByUser(
+      userId,
+      this.maxSessionsPerUser,
+    );
+
     return created.sessionId;
   }
 
@@ -55,6 +62,21 @@ export class SessionService {
     if (session.expiresAt < new Date()) return null;
 
     return session;
+  }
+
+  async rotateSession(
+    sessionId: string,
+    refreshToken: string,
+    expiresIn: number,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<void> {
+    const hashed = await this.hashingService.hash(refreshToken);
+    await this.sessionStore.update(sessionId, {
+      refreshTokenHash: hashed,
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+      userAgent: metadata?.userAgent,
+      ipAddress: metadata?.ipAddress,
+    });
   }
 
   async invalidateSession(sessionId: string): Promise<void> {

@@ -66,7 +66,8 @@ export class AuthService {
     const existing = await this.userRepository.findByEmail(normalizedEmail);
 
     if (existing && existing.status === AccountStatus.ACTIVE) {
-      throw new BadRequestException('Email already registered');
+      // Avoid account enumeration
+      return;
     }
 
     if (existing) {
@@ -110,13 +111,17 @@ export class AuthService {
   - Create session
   =====================================================
   */
-  async verifyEmail(email: string, otp: string): Promise<AuthResult> {
+  async verifyEmail(
+    email: string,
+    otp: string,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResult> {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await this.userRepository.findByEmail(normalizedEmail);
     if (!user) throw new BadRequestException('User not found');
 
     if (user.status === AccountStatus.ACTIVE && user.emailVerified) {
-      return this.createSessionAndTokens(user);
+      return this.createSessionAndTokens(user, metadata);
     }
 
     const valid = await this.otpService.verifyOtp(normalizedEmail, otp);
@@ -127,7 +132,7 @@ export class AuthService {
       emailVerified: true,
     });
 
-    return this.createSessionAndTokens(updatedUser);
+    return this.createSessionAndTokens(updatedUser, metadata);
   }
 
   /*
@@ -138,8 +143,13 @@ export class AuthService {
   - Create session
   =====================================================
   */
-  async login(email: string, password: string): Promise<AuthResult> {
-    const user = await this.userRepository.findByEmail(email);
+  async login(
+    email: string,
+    password: string,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResult> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.userRepository.findByEmail(normalizedEmail);
     if (!user) throw new ForbiddenException('Invalid credentials');
 
     if (this.isAccountLocked(user)) {
@@ -162,7 +172,7 @@ export class AuthService {
 
     await this.resetFailedAttempts(user);
 
-    return this.createSessionAndTokens(user);
+    return this.createSessionAndTokens(user, metadata);
   }
 
   /*
@@ -170,7 +180,10 @@ export class AuthService {
   REFRESH TOKEN (ROTATION + REUSE DETECTION)
   =====================================================
   */
-  async refresh(refreshToken: string): Promise<AuthResult> {
+  async refresh(
+    refreshToken: string,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResult> {
     if (!refreshToken) {
       throw new ForbiddenException('Refresh token missing');
     }
@@ -197,9 +210,19 @@ export class AuthService {
       throw new ForbiddenException('User not active');
     }
 
-    await this.sessionService.invalidateSession(payload.sessionId);
+    const tokens = await this.tokenService.generateTokens(
+      user,
+      payload.sessionId,
+    );
 
-    return this.createSessionAndTokens(user);
+    await this.sessionService.rotateSession(
+      payload.sessionId,
+      tokens.refreshToken,
+      tokens.refreshTokenExpiresIn,
+      metadata,
+    );
+
+    return { user, tokens };
   }
 
   /*
@@ -213,6 +236,9 @@ export class AuthService {
     }
 
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
+    if (payload.type !== TokenType.REFRESH) {
+      throw new ForbiddenException('Invalid token type');
+    }
     await this.sessionService.invalidateSession(payload.sessionId);
   }
 
@@ -222,12 +248,13 @@ export class AuthService {
   =====================================================
   */
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.userRepository.findByEmail(email);
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.userRepository.findByEmail(normalizedEmail);
     if (!user) return; // prevent enumeration
 
     const rawToken = randomUUID();
     await this.passwordResetService.storeResetToken(user.id, rawToken);
-    await this.emailService.sendPasswordReset(email, user.id, rawToken);
+    await this.emailService.sendPasswordReset(normalizedEmail, user.id, rawToken);
   }
 
   /*
@@ -261,15 +288,19 @@ export class AuthService {
   GOOGLE LOGIN / SIGNUP VIA ID TOKEN
   =====================================================
   */
-  async googleLoginOrSignup(googleToken: string): Promise<AuthResult> {
+  async googleLoginOrSignup(
+    googleToken: string,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResult> {
     const googleProfile =
       await this.googleTokenService.verifyIdToken(googleToken);
 
-    let user = await this.userRepository.findByEmail(googleProfile.email);
+    const normalizedEmail = googleProfile.email.toLowerCase().trim();
+    let user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       user = await this.userRepository.createGoogleUser({
-        email: googleProfile.email,
+        email: normalizedEmail,
         name: googleProfile.name,
         avatar: googleProfile.picture,
         status: AccountStatus.ACTIVE,
@@ -283,7 +314,7 @@ export class AuthService {
       throw new ForbiddenException('Account not active');
     }
 
-    return this.createSessionAndTokens(user);
+    return this.createSessionAndTokens(user, metadata);
   }
 
   /*
@@ -292,7 +323,10 @@ export class AuthService {
   =====================================================
   */
 
-  private async createSessionAndTokens(user: AuthUser): Promise<AuthResult> {
+  private async createSessionAndTokens(
+    user: AuthUser,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResult> {
     const sessionId = randomUUID();
 
     const tokens = await this.tokenService.generateTokens(user, sessionId);
@@ -302,6 +336,7 @@ export class AuthService {
       sessionId,
       tokens.refreshToken,
       tokens.refreshTokenExpiresIn,
+      metadata,
     );
 
     if (storedSessionId !== sessionId) {

@@ -6,6 +6,8 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -42,7 +44,7 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'OTP sent to email' })
   async signup(@Body() dto: SignupDto) {
     await this.authService.signup(dto.email, dto.password, dto.username);
-    return { message: 'Verification OTP sent to email' };
+    return { message: 'If account exists, verification instructions sent' };
   }
 
   /*
@@ -57,8 +59,13 @@ export class AuthController {
   async verifyEmail(
     @Body() dto: VerifyEmailDto,
     @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
-    const result = await this.authService.verifyEmail(dto.email, dto.otp);
+    const result = await this.authService.verifyEmail(
+      dto.email,
+      dto.otp,
+      this.getSessionMetadata(req),
+    );
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
     return this.mapAuthResultToDto(result);
@@ -77,8 +84,13 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
-    const result = await this.authService.login(dto.email, dto.password);
+    const result = await this.authService.login(
+      dto.email,
+      dto.password,
+      this.getSessionMetadata(req),
+    );
 
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
@@ -100,8 +112,16 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token missing');
+    }
 
-    const result = await this.authService.refresh(refreshToken);
+    this.ensureSameOrigin(req);
+
+    const result = await this.authService.refresh(
+      refreshToken,
+      this.getSessionMetadata(req),
+    );
 
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
@@ -119,16 +139,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout and invalidate session' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies?.refreshToken;
+    this.ensureSameOrigin(req);
 
     await this.authService.logout(refreshToken);
 
     const isProd = process.env.NODE_ENV === 'production';
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: '/',
-    });
+    this.clearRefreshCookie(res, isProd);
 
     return { message: 'Logged out successfully' };
   }
@@ -181,8 +197,12 @@ export class AuthController {
   async googleLoginOrSignup(
     @Body() dto: GoogleLoginDto,
     @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
-    const result = await this.authService.googleLoginOrSignup(dto.googleToken);
+    const result = await this.authService.googleLoginOrSignup(
+      dto.googleToken,
+      this.getSessionMetadata(req),
+    );
 
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
@@ -196,13 +216,76 @@ export class AuthController {
   */
   private setRefreshCookie(res: Response, token: string) {
     const isProd = process.env.NODE_ENV === 'production';
+    const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim();
     res.cookie('refreshToken', token, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
-      path: '/',
+      path: '/auth',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     });
+  }
+
+  private clearRefreshCookie(res: Response, isProd: boolean) {
+    const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim();
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/auth',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    });
+
+    // Clear legacy cookie path, if it exists.
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    });
+  }
+
+  private getSessionMetadata(req: Request): {
+    userAgent?: string;
+    ipAddress?: string;
+  } {
+    const ctx = (req as any).context as
+      | { userAgent?: string; ip?: string }
+      | undefined;
+    return {
+      userAgent: ctx?.userAgent ?? req.get('user-agent') ?? undefined,
+      ipAddress: ctx?.ip ?? req.ip,
+    };
+  }
+
+  private ensureSameOrigin(req: Request) {
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) return;
+
+    let expectedOrigin: string;
+    try {
+      expectedOrigin = new URL(frontendUrl).origin;
+    } catch {
+      return;
+    }
+
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    const source = origin ?? referer;
+    if (!source) return;
+
+    let sourceOrigin: string;
+    try {
+      sourceOrigin = new URL(source).origin;
+    } catch {
+      throw new ForbiddenException('Invalid origin');
+    }
+
+    if (sourceOrigin !== expectedOrigin) {
+      throw new ForbiddenException('Invalid origin');
+    }
   }
 
   private mapAuthResultToDto(result: {

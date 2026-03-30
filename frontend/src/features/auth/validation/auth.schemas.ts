@@ -3,22 +3,24 @@ import { z } from "zod";
 export const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters.")
+  .max(20, "Password must be 20 characters or less.")
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
   .regex(/[a-z]/, "Password must contain at least one lowercase letter.")
   .regex(/[0-9]/, "Password must contain at least one number.")
   .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character.");
 
 export const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
+  email: z.string().trim().email("Enter a valid email address."),
   password: z.string().min(1, "Password is required."),
 });
 
 export const signupSchema = z.object({
   username: z
     .string()
-    .min(2, "Username must be at least 2 characters.")
-    .max(50, "Username must be 50 characters or less."),
-  email: z.string().email("Enter a valid email address."),
+    .trim()
+    .min(3, "Username must be at least 3 characters.")
+    .max(30, "Username must be 30 characters or less."),
+  email: z.string().trim().email("Enter a valid email address."),
   password: passwordSchema,
 });
 
@@ -30,7 +32,7 @@ export const verifyEmailSchema = z.object({
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
+  email: z.string().trim().email("Enter a valid email address."),
 });
 
 export const resetPasswordSchema = z

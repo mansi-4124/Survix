@@ -28,8 +28,7 @@ function App() {
         return;
       }
 
-      const role = active.getAttribute("role");
-      if (role === "button" || active.dataset.enterClick === "true") {
+      if (active.dataset.enterClick === "true") {
         event.preventDefault();
         active.click();
       }

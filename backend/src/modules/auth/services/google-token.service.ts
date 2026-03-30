@@ -6,6 +6,7 @@ export type GoogleProfile = {
   email: string;
   name?: string;
   picture?: string;
+  emailVerified?: boolean;
 };
 
 @Injectable()
@@ -35,10 +36,16 @@ export class GoogleTokenService {
         throw new UnauthorizedException('Google token did not contain email');
       }
 
+      const emailVerified = payload.email_verified === true;
+      if (!emailVerified) {
+        throw new UnauthorizedException('Google email not verified');
+      }
+
       return {
         email: payload.email,
         name: payload.name,
         picture: payload.picture,
+        emailVerified,
       };
     } catch {
       throw new UnauthorizedException('Invalid Google token');

@@ -27,7 +27,7 @@ const SurveyResponsePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const token = new URLSearchParams(location.search).get("token");
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAuthenticated = useAuthStore((state) => Boolean(state.user));
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const isInitializing = useAuthStore((state) => state.isInitializing);
   const {

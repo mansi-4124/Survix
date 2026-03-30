@@ -12,7 +12,8 @@ import { useAuthStore } from "@/features/auth/store/auth.store";
 import { asDisplayString } from "@/lib/normalize";
 
 export const SiteHeader = () => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const isAuthenticated = Boolean(user);
   const location = useLocation();
   const authHiddenRoutes = [
     "/login",

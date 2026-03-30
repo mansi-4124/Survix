@@ -5,7 +5,7 @@ import { PageLoader } from "@/components/common/page-loader";
 
 export const RequireAuth = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAuthStore((s) => Boolean(s.user));
   const isInitializing = useAuthStore((s) => s.isInitializing);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
 

@@ -26,7 +26,8 @@ const shouldSkipRefresh = (url?: string): boolean => {
     url.includes("/auth/login") ||
     url.includes("/auth/signup") ||
     url.includes("/auth/verify-email") ||
-    url.includes("/auth/refresh")
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/logout")
   );
 };
 
@@ -57,8 +58,13 @@ axios.interceptors.response.use(
             .getState()
             .setAuth(refreshed.user, refreshed.tokens?.accessToken);
           return true;
-        } catch (_refreshError) {
-          useAuthStore.getState().clearAuth();
+        } catch (refreshError) {
+          const status = (refreshError as any)?.response?.status as
+            | number
+            | undefined;
+          if (status === 401 || status === 403) {
+            useAuthStore.getState().clearAuth();
+          }
           return false;
         } finally {
           refreshPromise = null;

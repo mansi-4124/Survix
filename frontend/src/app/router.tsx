@@ -71,7 +71,7 @@ const withSuspense = (element: ReactElement) => (
 );
 
 const RootIndex = () => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAuthStore((s) => Boolean(s.user));
   if (isAuthenticated) {
     return <Navigate to="/app" replace />;
   }

@@ -31,6 +31,27 @@ export class PrismaSessionStore implements ISessionStore {
 
     return this.toDomain(record);
   }
+
+  async update(
+    sessionId: string,
+    data: {
+      refreshTokenHash: string;
+      expiresAt: Date;
+      userAgent?: string;
+      ipAddress?: string;
+    },
+  ): Promise<void> {
+    await this.prisma.session.update({
+      where: { sessionId },
+      data: {
+        refreshTokenHash: data.refreshTokenHash,
+        expiresAt: data.expiresAt,
+        userAgent: data.userAgent,
+        ipAddress: data.ipAddress,
+        revokedAt: null,
+      },
+    });
+  }
   async delete(sessionId: string) {
     await this.prisma.session.delete({
       where: { sessionId },
@@ -40,6 +61,26 @@ export class PrismaSessionStore implements ISessionStore {
   async deleteAllByUser(userId: string) {
     await this.prisma.session.deleteMany({
       where: { userId },
+    });
+  }
+
+  async deleteOldestByUser(userId: string, keepLatest: number) {
+    if (keepLatest <= 0) {
+      await this.deleteAllByUser(userId);
+      return;
+    }
+
+    const sessionsToDelete = await this.prisma.session.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: keepLatest,
+      select: { sessionId: true },
+    });
+
+    if (sessionsToDelete.length === 0) return;
+
+    await this.prisma.session.deleteMany({
+      where: { sessionId: { in: sessionsToDelete.map((s) => s.sessionId) } },
     });
   }
 

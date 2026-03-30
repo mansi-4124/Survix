@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches } from 'class-validator';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 import { StrongPasswordField } from 'src/common/decorators/password.decorator';
 
 export class ResetPasswordDto {
@@ -10,12 +10,15 @@ export class ResetPasswordDto {
   @Matches(/^[a-fA-F0-9]{24}$/, {
     message: 'userId must be a valid Mongo ObjectId',
   })
+  @IsString()
+  @IsNotEmpty()
   userId: string;
 
   @ApiProperty({
     description: 'Reset token sent via email',
   })
   @IsString()
+  @IsNotEmpty()
   token: string;
 
   @StrongPasswordField()
