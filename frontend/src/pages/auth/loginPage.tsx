@@ -30,7 +30,7 @@ const LoginPage = () => {
   const redirectTo = (() => {
     const from = (location.state as { from?: Location })?.from;
     if (!from?.pathname) return "/app";
-    if (from.pathname === "/app/search") return "/app";
+    if (from.pathname.endsWith("/search")) return "/app";
     return `${from.pathname}${from.search ?? ""}`;
   })();
   const {

@@ -1,8 +1,9 @@
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { CreateOrganizationDtoRequest } from "@/api";
+import { OrganizationVisibility } from "@/features/organization/constants/organization-visibility";
 import { OrganizationForm } from "@/features/organization/components/organizationForm";
 import type { OrganizationFormValues } from "@/features/organization/components/organizationForm";
+import type { CreateOrganizationDtoRequest } from "@/api";
 import { useCreateOrganization } from "@/features/organization/hooks/useCreateOrganization";
 import { slugify } from "@/features/organization/utils/slugify";
 import { useOrganizationStore } from "@/features/organization/store/organization.store";
@@ -20,7 +21,7 @@ const OrganizationCreatePage = () => {
     defaultValues: {
       name: "",
       slug: "",
-      visibility: CreateOrganizationDtoRequest.visibility.PRIVATE,
+      visibility: OrganizationVisibility.PRIVATE,
       description: "",
       industry: "",
       size: "",
@@ -33,7 +34,7 @@ const OrganizationCreatePage = () => {
     const payload = {
       name: values.name.trim(),
       slug: slugify(values.slug || values.name) || `org-${Date.now()}`,
-      visibility: values.visibility,
+      visibility: values.visibility as CreateOrganizationDtoRequest.visibility,
       description: values.description || undefined,
       industry: values.industry || undefined,
       size: values.size || undefined,
@@ -45,9 +46,12 @@ const OrganizationCreatePage = () => {
       const organization = await createOrganization.mutateAsync(payload);
       setActiveOrganizationId(organization.id);
       toast.success("Organization created successfully.");
-      navigate("/app/organization");
-    } catch {
-      toast.error("Failed to create organization.");
+      navigate(`/app/org/${organization.id}/dashboard`);
+    } catch (error) {
+      toast.error(
+        (error as { message?: string })?.message ??
+          "Failed to create organization.",
+      );
     }
   };
 

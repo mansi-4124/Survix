@@ -1,4 +1,10 @@
-﻿import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import {
   Building2,
   ClipboardCheck,
@@ -28,6 +34,7 @@ import { useActiveOrganization } from "@/features/organization/hooks/useActiveOr
 import { useOrganizationDetails } from "@/features/organization/hooks/useOrganizationDetails";
 import { useAcceptInvite } from "@/features/organization/hooks/useAcceptInvite";
 import { useOrganizationStore } from "@/features/organization/store/organization.store";
+import { useWorkspaceRedirect } from "@/features/organization/hooks/useWorkspaceRedirect";
 import { asDisplayString } from "@/lib/normalize";
 import { toast } from "@/lib/toast";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
@@ -36,8 +43,10 @@ import { useEffect, useRef, useState } from "react";
 export const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { orgId } = useParams();
   const logout = useLogout();
   const acceptInvite = useAcceptInvite();
+  const redirectToWorkspace = useWorkspaceRedirect();
   const setActiveOrganizationIdFromStore = useOrganizationStore(
     (state) => state.setActiveOrganizationId,
   );
@@ -48,11 +57,26 @@ export const AppLayout = () => {
   const { user } = useAuthStore();
   const { organizations, activeOrganizationId, setActiveOrganizationId } =
     useActiveOrganization();
-  const { data: organizationDetails } = useOrganizationDetails(
-    activeOrganizationId ?? undefined,
-  );
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
+  const { data: organizationDetails } = useOrganizationDetails(resolvedOrgId);
   const isPersonalAccount =
     organizationDetails?.organization.accountType === "PERSONAL";
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
+
+  useEffect(() => {
+    if (orgId) {
+      setActiveOrganizationIdFromStore(orgId);
+    }
+  }, [orgId, setActiveOrganizationIdFromStore]);
+
+  useEffect(() => {
+    if (orgId) return;
+    if (activeOrganizationId) {
+      navigate(`/app/org/${activeOrganizationId}/dashboard`, { replace: true });
+      return;
+    }
+    navigate("/app/onboarding", { replace: true });
+  }, [activeOrganizationId, navigate, orgId]);
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -65,7 +89,7 @@ export const AppLayout = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get("q") ?? "";
-    if (location.pathname === "/app/search") {
+    if (location.pathname.endsWith("/search")) {
       setSearchOpen(true);
       setSearchQuery(query);
     }
@@ -85,12 +109,12 @@ export const AppLayout = () => {
     params.set("q", trimmed);
     navigate(
       {
-        pathname: "/app/search",
+        pathname: `${orgBasePath}/search`,
         search: `?${params.toString()}`,
       },
       { replace: true },
     );
-  }, [debouncedSearchQuery, navigate, searchOpen]);
+  }, [debouncedSearchQuery, navigate, orgBasePath, searchOpen]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -170,7 +194,14 @@ export const AppLayout = () => {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <Link to="/app" className="flex items-center gap-2">
+            <Link
+              to={
+                activeOrganizationId
+                  ? `/app/org/${activeOrganizationId}/dashboard`
+                  : "/app/onboarding"
+              }
+              className="flex items-center gap-2"
+            >
               <img
                 src="/Survix_logo_transparent.png"
                 alt="Survix"
@@ -179,13 +210,34 @@ export const AppLayout = () => {
               <span className="sr-only">Survix</span>
             </Link>
             <nav className="hidden md:flex items-center gap-4 text-sm text-slate-600">
-              <Link to="/app" className="hover:text-slate-900">
+              <Link
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/dashboard`
+                    : "/app/onboarding"
+                }
+                className="hover:text-slate-900"
+              >
                 Dashboard
               </Link>
-              <Link to="/app/surveys" className="hover:text-slate-900">
+              <Link
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/surveys`
+                    : "/app/onboarding"
+                }
+                className="hover:text-slate-900"
+              >
                 Surveys
               </Link>
-              <Link to="/app/polls" className="hover:text-slate-900">
+              <Link
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/polls`
+                    : "/app/onboarding"
+                }
+                className="hover:text-slate-900"
+              >
                 Polls
               </Link>
               {isPersonalAccount ? (
@@ -193,18 +245,28 @@ export const AppLayout = () => {
                   Profile
                 </Link>
               ) : (
-                <Link to="/app/organization" className="hover:text-slate-900">
+                <Link
+                  to={
+                    activeOrganizationId
+                      ? `/app/org/${activeOrganizationId}/organization`
+                      : "/app/onboarding"
+                  }
+                  className="hover:text-slate-900"
+                >
                   Organization
                 </Link>
               )}
             </nav>
           </div>
-        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
               <Building2 className="w-4 h-4" />
               <Select
                 value={activeOrganizationId ?? ""}
-                onValueChange={setActiveOrganizationId}
+                onValueChange={(value) => {
+                  setActiveOrganizationId(value);
+                  redirectToWorkspace(value);
+                }}
               >
                 <SelectTrigger className="w-48 h-9">
                   <SelectValue placeholder="Select organization" />
@@ -256,7 +318,7 @@ export const AppLayout = () => {
                 {user?.avatar ? (
                   <img
                     src={user.avatar.toString()}
-                      alt={asDisplayString(user?.name, "Profile")}
+                    alt={asDisplayString(user?.name, "Profile")}
                     className="h-full w-full object-cover"
                     referrerPolicy="no-referrer"
                   />
@@ -289,8 +351,12 @@ export const AppLayout = () => {
                 onClick={() => {
                   setSearchOpen(false);
                   setSearchQuery("");
-                  if (location.pathname === "/app/search") {
-                    navigate("/app");
+                  if (location.pathname.endsWith("/search")) {
+                    if (activeOrganizationId) {
+                      navigate(`/app/org/${activeOrganizationId}/dashboard`);
+                    } else {
+                      navigate("/app/onboarding");
+                    }
                   }
                 }}
                 aria-label="Close search"
@@ -312,6 +378,7 @@ export const AppLayout = () => {
                   value={activeOrganizationId ?? ""}
                   onValueChange={(value) => {
                     setActiveOrganizationId(value);
+                    redirectToWorkspace(value);
                     setMenuOpen(false);
                   }}
                 >
@@ -331,7 +398,11 @@ export const AppLayout = () => {
 
             <nav className="space-y-2 text-sm">
               <Link
-                to="/app"
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/dashboard`
+                    : "/app/onboarding"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
                 onClick={() => setMenuOpen(false)}
               >
@@ -339,7 +410,11 @@ export const AppLayout = () => {
                 Dashboard
               </Link>
               <Link
-                to="/app/surveys"
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/surveys`
+                    : "/app/onboarding"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
                 onClick={() => setMenuOpen(false)}
               >
@@ -347,7 +422,11 @@ export const AppLayout = () => {
                 Surveys
               </Link>
               <Link
-                to="/app/polls"
+                to={
+                  activeOrganizationId
+                    ? `/app/org/${activeOrganizationId}/polls`
+                    : "/app/onboarding"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
                 onClick={() => setMenuOpen(false)}
               >
@@ -355,7 +434,13 @@ export const AppLayout = () => {
                 Polls
               </Link>
               <Link
-                to={isPersonalAccount ? "/app/profile" : "/app/organization"}
+                to={
+                  isPersonalAccount
+                    ? "/app/profile"
+                    : activeOrganizationId
+                      ? `/app/org/${activeOrganizationId}/organization`
+                      : "/app/onboarding"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
                 onClick={() => setMenuOpen(false)}
               >
@@ -363,7 +448,13 @@ export const AppLayout = () => {
                 {isPersonalAccount ? "Profile" : "Organization"}
               </Link>
               <Link
-                to={isPersonalAccount ? "/app/profile" : "/app/organization"}
+                to={
+                  isPersonalAccount
+                    ? "/app/profile"
+                    : activeOrganizationId
+                      ? `/app/org/${activeOrganizationId}/organization`
+                      : "/app/onboarding"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
                 onClick={() => setMenuOpen(false)}
               >
@@ -400,3 +491,4 @@ export const AppLayout = () => {
     </div>
   );
 };
+

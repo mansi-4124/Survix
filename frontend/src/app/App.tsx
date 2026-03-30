@@ -24,7 +24,11 @@ function App() {
       if (active.isContentEditable) return;
 
       const tagName = active.tagName.toLowerCase();
-      if (tagName === "input" || tagName === "textarea" || tagName === "select") {
+      if (
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select"
+      ) {
         return;
       }
 
@@ -39,7 +43,7 @@ function App() {
   }, []);
 
   if (!hasHydrated || isInitializing) {
-    return <PageLoader fullScreen message="Initializing app..." />;
+    return <PageLoader fullScreen message="" />;
   }
 
   return (

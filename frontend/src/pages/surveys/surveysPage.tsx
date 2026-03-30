@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,10 +22,12 @@ import { useOrganizationDetails } from "@/features/organization/hooks/useOrganiz
 
 const SurveysPage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const { data: surveys, isLoading, isError } = useMySurveys();
   const { activeOrganizationId } = useActiveOrganization();
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
   const { data: activeOrganization } = useOrganizationDetails(
-    activeOrganizationId ?? undefined,
+    resolvedOrgId,
   );
   const publishSurvey = usePublishSurvey();
   const closeSurvey = useCloseSurvey();
@@ -41,16 +43,16 @@ const SurveysPage = () => {
     const isPersonalWorkspace =
       activeOrganization?.organization.accountType === "PERSONAL";
     const scoped = source.filter((survey) => {
-      if (!activeOrganizationId) {
+      if (!resolvedOrgId) {
         return !survey.organizationId;
       }
       if (isPersonalWorkspace) {
         return (
-          survey.organizationId === activeOrganizationId ||
+          survey.organizationId === resolvedOrgId ||
           !survey.organizationId
         );
       }
-      return survey.organizationId === activeOrganizationId;
+      return survey.organizationId === resolvedOrgId;
     });
     const query = search.trim().toLowerCase();
     if (!query) {
@@ -61,7 +63,9 @@ const SurveysPage = () => {
         survey.title.toLowerCase().includes(query) ||
         asDisplayString(survey.description, "").toLowerCase().includes(query),
     );
-  }, [activeOrganization, activeOrganizationId, search, surveys]);
+  }, [activeOrganization, resolvedOrgId, search, surveys]);
+
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
 
   useEffect(() => {
     if (!surveys || surveys.length === 0) return;
@@ -107,7 +111,7 @@ const SurveysPage = () => {
               Manage your surveys with live backend data.
             </p>
           </div>
-          <Link to="/app/surveys/create">
+          <Link to={`${orgBasePath}/surveys/create`}>
             <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
               <Plus className="w-4 h-4 mr-2" />
               Create Survey
@@ -158,7 +162,7 @@ const SurveysPage = () => {
                       description="Create a new survey to get started."
                       className="border-0 shadow-none p-0"
                     />
-                    <Link to="/app/surveys/create">
+                    <Link to={`${orgBasePath}/surveys/create`}>
                       <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Survey
@@ -173,7 +177,7 @@ const SurveysPage = () => {
                     survey={survey}
                     onOpen={(surveyId) => {
                       setActiveSurveyId(surveyId);
-                      navigate(`/app/surveys/${surveyId}`);
+                      navigate(`${orgBasePath}/surveys/${surveyId}`);
                     }}
                     onPublish={(surveyId) => publishSurvey.mutate(surveyId)}
                     onClose={(surveyId) => closeSurvey.mutate(surveyId)}

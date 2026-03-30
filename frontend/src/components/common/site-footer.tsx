@@ -28,7 +28,7 @@ export const SiteFooter = () => (
           <ul className="space-y-2 text-sm">
             <li>
               <Link
-                to="/app/surveys"
+                to="/app"
                 className="hover:text-white transition-colors"
               >
                 Surveys
@@ -36,7 +36,7 @@ export const SiteFooter = () => (
             </li>
             <li>
               <Link
-                to="/app/polls"
+                to="/app"
                 className="hover:text-white transition-colors"
               >
                 Polls
@@ -44,7 +44,7 @@ export const SiteFooter = () => (
             </li>
             <li>
               <Link
-                to="/app/organization"
+                to="/app"
                 className="hover:text-white transition-colors"
               >
                 Organization

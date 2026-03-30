@@ -1,6 +1,6 @@
 import { Check, Copy, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -41,6 +41,8 @@ export const SurveyHeaderActions = ({
   onDelete,
 }: SurveyHeaderActionsProps) => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -52,7 +54,10 @@ export const SurveyHeaderActions = ({
         <Badge variant="outline">{roleLabel}</Badge>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => navigate("/app/surveys")}>
+        <Button
+          variant="outline"
+          onClick={() => navigate(`${orgBasePath}/surveys`)}
+        >
           Back
         </Button>
         {!isPublished && canManageSurvey && (

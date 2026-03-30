@@ -46,9 +46,11 @@ export class AuditInterceptor implements NestInterceptor {
               method,
               url,
               orgId,
-              before,
-              after,
-              result,
+              beforeStatus: before?.organization?.status,
+              afterStatus: after?.organization?.status,
+              beforeOwnerId: before?.organization?.ownerId,
+              afterOwnerId: after?.organization?.ownerId,
+              resultId: (result as any)?.id ?? null,
             }),
           );
         });

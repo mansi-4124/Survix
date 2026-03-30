@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
 import { PollCreateForm, PollCreatedCard, type PollCreateFormValue } from "@/features/polls/components";
@@ -9,7 +9,10 @@ import { PageReveal } from "@/components/common/page-reveal";
 
 const PollCreatePage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const { activeOrganizationId } = useActiveOrganization();
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
   const createPoll = useCreatePoll();
   const [createdPolls, setCreatedPolls] = useState<Array<{ id: string; code: string; title: string }>>([]);
   const [error, setError] = useState<string | null>(null);
@@ -17,14 +20,14 @@ const PollCreatePage = () => {
   const onSubmit = async (value: PollCreateFormValue) => {
     setError(null);
 
-    if (!activeOrganizationId) {
+    if (!resolvedOrgId) {
       setError("Select an active organization first.");
       return;
     }
 
     try {
       const result = await createPoll.mutateAsync({
-        organizationId: activeOrganizationId,
+        organizationId: resolvedOrgId,
         title: value.title,
         description: value.description,
         questions: value.questions.map((question) => ({
@@ -57,8 +60,10 @@ const PollCreatePage = () => {
         <div className="p-6">
           <PollCreatedCard
             polls={createdPolls}
-            onBack={() => navigate("/app/polls")}
-            onOpenLive={(pollId) => navigate(`/app/polls/${pollId}/live`)}
+            onBack={() => navigate(`${orgBasePath}/polls`)}
+            onOpenLive={(pollId) =>
+              navigate(`${orgBasePath}/polls/${pollId}/live`)
+            }
           />
         </div>
       </PageReveal>

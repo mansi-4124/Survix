@@ -30,6 +30,16 @@ const OrganizationDetails = ({
     if (!file || !organization?.id) {
       return;
     }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only images are allowed.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2MB.");
+      event.target.value = "";
+      return;
+    }
 
     uploadLogo.mutate(
       { orgId: organization.id, file },
@@ -49,7 +59,10 @@ const OrganizationDetails = ({
           {allowEditOrg && (
             <Button
               variant="outline"
-              onClick={() => navigate("/app/organization/edit")}
+              onClick={() => {
+                if (!organization?.id) return;
+                navigate(`/app/org/${organization.id}/organization/edit`);
+              }}
             >
               Edit Details
             </Button>
@@ -66,8 +79,7 @@ const OrganizationDetails = ({
                 loading="lazy"
                 referrerPolicy="no-referrer"
                 onError={(event) => {
-                  const img = event.currentTarget;
-                  img.src = "";
+                  event.currentTarget.style.display = "none";
                 }}
               />
             ) : (

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,6 +8,7 @@ import {
 import {
   OrganizationAccountType,
   OrganizationMemberStatus,
+  OrganizationRole,
   OrganizationStatus,
   OrganizationVisibility,
   PollStatus,
@@ -69,6 +71,11 @@ export class OrganizationService {
   */
 
   async createOrganization(userId: string, dto: CreateOrganizationDtoRequest) {
+    const existingSlug = await this.organizationRepository.findBySlug(dto.slug);
+    if (existingSlug) {
+      throw new ConflictException('Slug already exists');
+    }
+
     const input: CreateOrganizationInput = {
       name: dto.name,
       slug: dto.slug,
@@ -83,14 +90,75 @@ export class OrganizationService {
       ownerId: userId,
     };
 
-    const organization = await this.organizationRepository.create(input);
+    const { organization, membership } = await this.prisma.$transaction(
+      async (tx) => {
+        const createdOrg = await tx.organization.create({
+          data: {
+            name: input.name,
+            slug: input.slug,
+            ownerId: input.ownerId,
+            accountType:
+              input.accountType ?? OrganizationAccountType.ORGANIZATION,
+            isPersonal: input.isPersonal ?? false,
+            visibility: input.visibility,
+            description: input.description,
+            industry: input.industry,
+            size: input.size,
+            websiteUrl: input.websiteUrl,
+            contactEmail: input.contactEmail,
+            status: OrganizationStatus.ACTIVE,
+          },
+        });
 
-    const membership = await this.memberRepository.createOwnerMembership(
-      organization.id,
-      userId,
+        const createdMembership = await tx.organizationMember.create({
+          data: {
+            organizationId: createdOrg.id,
+            userId,
+            role: OrganizationRole.OWNER,
+            status: OrganizationMemberStatus.ACTIVE,
+            joinedAt: new Date(),
+          },
+        });
+
+        return {
+          organization: createdOrg,
+          membership: createdMembership,
+        };
+      },
     );
 
-    return { organization, membership };
+    return {
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        logoUrl: organization.logoUrl,
+        ownerId: organization.ownerId,
+        accountType: organization.accountType,
+        isPersonal: organization.isPersonal,
+        description: organization.description,
+        industry: organization.industry,
+        size: organization.size,
+        websiteUrl: organization.websiteUrl,
+        contactEmail: organization.contactEmail,
+        visibility: organization.visibility,
+        status: organization.status,
+        deletedAt: organization.deletedAt,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt,
+      },
+      membership: {
+        id: membership.id,
+        organizationId: membership.organizationId,
+        userId: membership.userId,
+        role: OrganizationRoleDomain.OWNER,
+        status: membership.status,
+        joinedAt: membership.joinedAt,
+        leftAt: membership.leftAt,
+        invitedBy: membership.invitedBy,
+        removedBy: membership.removedBy,
+      },
+    };
   }
 
   async createPersonalWorkspace(userId: string, userEmail: string) {
@@ -244,7 +312,10 @@ export class OrganizationService {
         title: poll.title,
         description: poll.description,
         status: poll.status,
-        isActive: poll.status === PollStatus.LIVE && poll.expiresAt.getTime() > now,
+        isActive:
+          poll.status === PollStatus.LIVE &&
+          !!poll.expiresAt &&
+          poll.expiresAt.getTime() > now,
         expiresAt: poll.expiresAt,
         totalVotes: poll._count.votes,
       })),
@@ -278,6 +349,17 @@ export class OrganizationService {
     const organization = await this.organizationRepository.findById(orgId);
     if (!organization) {
       throw new NotFoundException('Organization not found');
+    }
+
+    if (organization.logoUrl) {
+      const publicId = this.extractCloudinaryPublicId(organization.logoUrl);
+      if (publicId) {
+        try {
+          await this.cloudinaryService.deleteFile(publicId, 'image');
+        } catch {
+          // Best-effort cleanup; do not block logo updates if delete fails.
+        }
+      }
     }
 
     const uploaded = await this.cloudinaryService.uploadFile(file, {
@@ -328,17 +410,22 @@ export class OrganizationService {
       throw new BadRequestException('New owner must be an active member');
     }
 
-    await this.memberRepository.updateMembership(membership.id, {
-      role: OrganizationRoleDomain.OWNER,
-    });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.update({
+        where: { id: membership.id },
+        data: { role: OrganizationRole.OWNER },
+      });
 
-    await this.memberRepository.updateMembership(currentOwnerMembership.id, {
-      role: OrganizationRoleDomain.ADMIN,
-    });
+      await tx.organizationMember.update({
+        where: { id: currentOwnerMembership.id },
+        data: { role: OrganizationRole.ADMIN },
+      });
 
-    await this.organizationRepository.update(orgId, {
-      ownerId: newOwnerUserId,
-    } as UpdateOrganizationInput);
+      await tx.organization.update({
+        where: { id: orgId },
+        data: { ownerId: newOwnerUserId },
+      });
+    });
   }
 
   /*
@@ -354,12 +441,17 @@ export class OrganizationService {
     return this.memberRepository.findMembership(orgId, userId);
   }
 
-  async listMembers(orgId: string): Promise<OrganizationMemberDomain[]> {
-    return this.memberRepository.listMembers(orgId);
+  async listMembers(
+    orgId: string,
+    options?: { page?: number; limit?: number },
+  ): Promise<OrganizationMemberDomain[]> {
+    return this.memberRepository.listMembers(orgId, options);
   }
 
-  async searchUsers(query: string) {
-    return this.memberRepository.searchUsers(query);
+  async searchUsers(query: string, currentUserId?: string) {
+    const results = await this.memberRepository.searchUsers(query);
+    if (!currentUserId) return results;
+    return results.filter((user) => user.id !== currentUserId);
   }
 
   private assertCanAssignRole(
@@ -400,9 +492,11 @@ export class OrganizationService {
 
     const existingUser = await this.memberRepository.findUserByEmail(email);
     if (!existingUser) {
-      throw new BadRequestException(
-        'User does not exist, ask them to signup to send invite',
-      );
+      return; // avoid email enumeration
+    }
+
+    if (existingUser.id === actorMembership.userId) {
+      throw new BadRequestException('You cannot invite yourself');
     }
 
     const existingMembership = await this.memberRepository.findMembership(
@@ -450,6 +544,9 @@ export class OrganizationService {
     }
 
     const frontendBaseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
+    if (!frontendBaseUrl) {
+      throw new BadRequestException('FRONTEND_URL is not configured');
+    }
     const inviteUrl = `${frontendBaseUrl}/app?inviteToken=${encodeURIComponent(
       rawToken,
     )}`;
@@ -493,10 +590,21 @@ export class OrganizationService {
     const hashedToken = this.hashToken(rawToken);
     const key = this.getInviteKey(hashedToken);
 
-    const payload = await this.redis.get<InvitePayload>(key);
+    const payload = await this.redis.getdel<InvitePayload>(key);
 
     if (!payload) {
       throw new BadRequestException('Invalid or expired invite token');
+    }
+
+    const organization = await this.organizationRepository.findById(
+      payload.orgId,
+    );
+    if (
+      !organization ||
+      organization.status !== OrganizationStatus.ACTIVE ||
+      organization.deletedAt
+    ) {
+      throw new BadRequestException('Organization inactive');
     }
 
     if (payload.email.toLowerCase() !== userEmail.toLowerCase()) {
@@ -526,8 +634,6 @@ export class OrganizationService {
       );
     }
 
-    await this.redis.del(key);
-
     return {
       organizationId: payload.orgId,
       role: payload.role,
@@ -539,6 +645,10 @@ export class OrganizationService {
     actorMembership: OrganizationMemberDomain,
     targetUserId: string,
   ): Promise<void> {
+    if (actorMembership.userId === targetUserId) {
+      throw new BadRequestException('Use leave organization instead');
+    }
+
     const targetMembership = await this.memberRepository.findMembership(
       orgId,
       targetUserId,
@@ -550,9 +660,10 @@ export class OrganizationService {
 
     if (
       actorMembership.role === OrganizationRoleDomain.ADMIN &&
-      targetMembership.role === OrganizationRoleDomain.OWNER
+      (targetMembership.role === OrganizationRoleDomain.OWNER ||
+        targetMembership.role === OrganizationRoleDomain.ADMIN)
     ) {
-      throw new ForbiddenException('Admin cannot remove owner');
+      throw new ForbiddenException('Admin cannot remove this member');
     }
 
     await this.memberRepository.updateMembership(targetMembership.id, {
@@ -664,6 +775,13 @@ export class OrganizationService {
       return;
     }
 
+    if (
+      actorMembership.role === OrganizationRoleDomain.ADMIN &&
+      targetMembership.role === OrganizationRoleDomain.ADMIN
+    ) {
+      throw new ForbiddenException('Admin cannot reactivate another admin');
+    }
+
     await this.memberRepository.updateMembership(targetMembership.id, {
       status: OrganizationMemberStatus.ACTIVE,
     });
@@ -675,5 +793,10 @@ export class OrganizationService {
 
   private getInviteKey(hashedToken: string): string {
     return `org:invite:${hashedToken}`;
+  }
+
+  private extractCloudinaryPublicId(url: string): string | null {
+    const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+$/);
+    return match?.[1] ?? null;
   }
 }

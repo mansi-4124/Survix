@@ -5,15 +5,17 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, Check, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreateOrganizationDtoRequest } from "@/api";
+import { OrganizationVisibility } from "@/features/organization/constants/organization-visibility";
 import { OrganizationForm } from "@/features/organization/components/organizationForm";
 import type { OrganizationFormValues } from "@/features/organization/components/organizationForm";
+import type { CreateOrganizationDtoRequest } from "@/api";
 import { useCreateOrganization } from "@/features/organization/hooks/useCreateOrganization";
 import { useCreatePersonalWorkspace } from "@/features/organization/hooks/useCreatePersonalWorkspace";
 import { slugify } from "@/features/organization/utils/slugify";
 import { useOrganizationStore } from "@/features/organization/store/organization.store";
 import { Pressable } from "@/components/common/pressable";
 import { PageReveal } from "@/components/common/page-reveal";
+import { toast } from "@/lib/toast";
 
 type OnboardingStep = "welcome" | "accountType" | "organizationDetails";
 type AccountType = "organization" | "personal";
@@ -32,7 +34,7 @@ const OnboardingPage = () => {
     defaultValues: {
       name: "",
       slug: "",
-      visibility: CreateOrganizationDtoRequest.visibility.PRIVATE,
+      visibility: OrganizationVisibility.PRIVATE,
       description: "",
       industry: "",
       size: "",
@@ -50,9 +52,16 @@ const OnboardingPage = () => {
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   const handleSkip = async () => {
-    const workspace = await createPersonalWorkspace.mutateAsync();
-    setActiveOrganizationId(workspace.id);
-    navigate("/app");
+    try {
+      const workspace = await createPersonalWorkspace.mutateAsync();
+      setActiveOrganizationId(workspace.id);
+      navigate(`/app/org/${workspace.id}/dashboard`);
+    } catch (error) {
+      toast.error(
+        (error as { message?: string })?.message ??
+          "Failed to create workspace.",
+      );
+    }
   };
 
   const handleContinue = async () => {
@@ -66,9 +75,16 @@ const OnboardingPage = () => {
         return;
       }
       if (accountType === "personal") {
-        const workspace = await createPersonalWorkspace.mutateAsync();
-        setActiveOrganizationId(workspace.id);
-        navigate("/app");
+        try {
+          const workspace = await createPersonalWorkspace.mutateAsync();
+          setActiveOrganizationId(workspace.id);
+          navigate(`/app/org/${workspace.id}/dashboard`);
+        } catch (error) {
+          toast.error(
+            (error as { message?: string })?.message ??
+              "Failed to create workspace.",
+          );
+        }
         return;
       }
       setStep("organizationDetails");
@@ -77,19 +93,26 @@ const OnboardingPage = () => {
   };
 
   const handleCreateOrganization = async (values: OrganizationFormValues) => {
-    const organization = await createOrganization.mutateAsync({
-      name: values.name.trim(),
-      slug: slugify(values.slug || values.name) || `org-${Date.now()}`,
-      visibility: values.visibility,
-      description: values.description || undefined,
-      industry: values.industry || undefined,
-      size: values.size || undefined,
-      websiteUrl: values.websiteUrl || undefined,
-      contactEmail: values.contactEmail || undefined,
-    });
+    try {
+      const organization = await createOrganization.mutateAsync({
+        name: values.name.trim(),
+        slug: slugify(values.slug || values.name) || `org-${Date.now()}`,
+        visibility: values.visibility as CreateOrganizationDtoRequest.visibility,
+        description: values.description || undefined,
+        industry: values.industry || undefined,
+        size: values.size || undefined,
+        websiteUrl: values.websiteUrl || undefined,
+        contactEmail: values.contactEmail || undefined,
+      });
 
-    setActiveOrganizationId(organization.id);
-    navigate("/app");
+      setActiveOrganizationId(organization.id);
+      navigate(`/app/org/${organization.id}/dashboard`);
+    } catch (error) {
+      toast.error(
+        (error as { message?: string })?.message ??
+          "Failed to create organization.",
+      );
+    }
   };
 
   return (

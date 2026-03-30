@@ -9,11 +9,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useOrganizationStore } from "@/features/organization/store/organization.store";
 import { asDisplayString } from "@/lib/normalize";
 
 export const SiteHeader = () => {
   const { user } = useAuthStore();
   const isAuthenticated = Boolean(user);
+  const activeOrganizationId = useOrganizationStore(
+    (state) => state.activeOrganizationId,
+  );
   const location = useLocation();
   const authHiddenRoutes = [
     "/login",
@@ -30,6 +34,10 @@ export const SiteHeader = () => {
     return null;
   }
 
+  const orgBasePath = activeOrganizationId
+    ? `/app/org/${activeOrganizationId}`
+    : "/app";
+
   return (
     <header className="h-16 border-b bg-white/80 backdrop-blur-md sticky top-0 z-40">
       <div className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -45,28 +53,28 @@ export const SiteHeader = () => {
           {isAuthenticated ? (
             <nav className="hidden md:flex items-center gap-4 text-sm text-slate-600">
               <Link
-                to="/app"
+                to={`${orgBasePath}/dashboard`}
                 className="hover:text-slate-900 inline-flex items-center gap-2"
               >
                 <Home className="w-4 h-4" />
                 Dashboard
               </Link>
               <Link
-                to="/app/surveys"
+                to={`${orgBasePath}/surveys`}
                 className="hover:text-slate-900 inline-flex items-center gap-2"
               >
                 <ClipboardCheck className="w-4 h-4" />
                 Surveys
               </Link>
               <Link
-                to="/app/polls"
+                to={`${orgBasePath}/polls`}
                 className="hover:text-slate-900 inline-flex items-center gap-2"
               >
                 <Radio className="w-4 h-4" />
                 Polls
               </Link>
               <Link
-                to="/app/organization"
+                to={`${orgBasePath}/organization`}
                 className="hover:text-slate-900 inline-flex items-center gap-2"
               >
                 <Building2 className="w-4 h-4" />
@@ -87,13 +95,13 @@ export const SiteHeader = () => {
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              <Link to="/app/search">
+              <Link to={`${orgBasePath}/search`}>
                 <Button variant="outline" size="sm">
                   <Search className="w-4 h-4 mr-2" />
                   Search
                 </Button>
               </Link>
-              <Link to="/app">
+              <Link to={`${orgBasePath}/dashboard`}>
                 <Button size="sm">Go to App</Button>
               </Link>
               <Link to="/app/profile" className="flex items-center">

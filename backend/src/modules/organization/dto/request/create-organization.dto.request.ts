@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Matches,
   MinLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -25,6 +26,9 @@ export class CreateOrganizationDtoRequest {
   @IsString()
   @MinLength(3)
   @MaxLength(50)
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Slug can only contain lowercase letters, numbers, and hyphens',
+  })
   @Transform(({ value }) => value?.trim().toLowerCase())
   slug: string;
 

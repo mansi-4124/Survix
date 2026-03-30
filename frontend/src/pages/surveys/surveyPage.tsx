@@ -144,8 +144,9 @@ const buildQuestionDraft = (question: any): QuestionDraft => ({
 });
 
 const SurveyPage = () => {
-  const { surveyId } = useParams();
+  const { surveyId, orgId } = useParams();
   const navigate = useNavigate();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   const user = useAuthStore((state) => state.user);
   const { data: survey, isLoading } = useSurveyForView(surveyId);
   const { data: members } = useSurveyMembers(surveyId);
@@ -416,7 +417,9 @@ const SurveyPage = () => {
     survey?.visibility === "PUBLIC" && surveyId
       ? `${window.location.origin}/respond/${surveyId}`
       : "";
-  const privateResultsLink = surveyId ? `/app/surveys/${surveyId}/results` : "";
+  const privateResultsLink = surveyId
+    ? `${orgBasePath}/surveys/${surveyId}/results`
+    : "";
 
   useEffect(() => {
     if (!survey || !canManageSurvey) return;
@@ -634,12 +637,12 @@ const SurveyPage = () => {
             onClose={async () => {
               if (!surveyId) return;
               await closeSurvey.mutateAsync(surveyId);
-              navigate(`/app/surveys/${surveyId}/results`);
+              navigate(`${orgBasePath}/surveys/${surveyId}/results`);
             }}
             onDuplicate={async () => {
               if (!surveyId) return;
               const result = await duplicateSurvey.mutateAsync(surveyId);
-              navigate(`/app/surveys/${result.newSurveyId}`);
+              navigate(`${orgBasePath}/surveys/${result.newSurveyId}`);
             }}
             onShareLink={async () => {
               if (!publicLink) return;
@@ -648,7 +651,7 @@ const SurveyPage = () => {
             onDelete={async () => {
               if (!surveyId) return;
               await deleteSurvey.mutateAsync(surveyId);
-              navigate("/app/surveys");
+              navigate(`${orgBasePath}/surveys`);
             }}
           />
           {privateResultsLink && (
@@ -948,7 +951,7 @@ const SurveyPage = () => {
             <h3 className="font-semibold">Survey Members</h3>
             {surveyId && (
               <Link
-                to={`/app/surveys/${surveyId}/members`}
+                to={`${orgBasePath}/surveys/${surveyId}/members`}
                 className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 Full page {"->"}

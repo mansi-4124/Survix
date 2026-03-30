@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { History, Plus, Radio, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,19 @@ import { PageReveal } from "@/components/common/page-reveal";
 
 const PollsPage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const { activeOrganizationId } = useActiveOrganization();
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
   const {
     data: polls,
     isLoading,
     isError,
-  } = useMyPolls(activeOrganizationId ?? undefined);
+  } = useMyPolls(resolvedOrgId);
 
   const source = (polls ?? []).filter(
-    (poll) => !activeOrganizationId || poll.organizationId === activeOrganizationId,
+    (poll) => !resolvedOrgId || poll.organizationId === resolvedOrgId,
   );
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
   const totalVotes = source.reduce((sum, poll) => sum + poll.totalVotes, 0);
   const activePolls = source.filter((poll) => poll.isActive).length;
   const recent = [...source].slice(0, 3);
@@ -40,7 +43,7 @@ const PollsPage = () => {
               Run real-time voting in your organization.
             </p>
           </div>
-          <Link to="/app/polls/create">
+          <Link to={`${orgBasePath}/polls/create`}>
             <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
               <Plus className="w-4 h-4 mr-2" />
               Create Poll
@@ -87,7 +90,7 @@ const PollsPage = () => {
             </p>
             <Button
               className="mt-4 bg-white text-indigo-700 hover:bg-slate-100"
-              onClick={() => navigate("/app/polls/create")}
+              onClick={() => navigate(`${orgBasePath}/polls/create`)}
             >
               Start
             </Button>
@@ -116,7 +119,7 @@ const PollsPage = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Recent Polls</h2>
-            <Link to="/app/polls/history">
+            <Link to={`${orgBasePath}/polls/history`}>
               <Button variant="outline">
                 <History className="w-4 h-4 mr-2" />
                 View History

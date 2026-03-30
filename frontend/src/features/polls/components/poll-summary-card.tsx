@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Calendar, Eye, Radio, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,8 @@ type PollSummaryCardProps = {
 };
 
 export const PollSummaryCard = ({ poll, onDelete }: PollSummaryCardProps) => {
+  const { orgId } = useParams();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   return (
     <Card className="p-5 border-slate-200">
       <div className="flex items-start justify-between gap-3">
@@ -42,7 +44,7 @@ export const PollSummaryCard = ({ poll, onDelete }: PollSummaryCardProps) => {
       </div>
 
       <div className="flex gap-2 mt-4">
-        <Link to={`/app/polls/${poll.id}/live`} className="flex-1">
+        <Link to={`${orgBasePath}/polls/${poll.id}/live`} className="flex-1">
           <Button variant="outline" className="w-full">
             <Eye className="w-4 h-4 mr-2" />
             View

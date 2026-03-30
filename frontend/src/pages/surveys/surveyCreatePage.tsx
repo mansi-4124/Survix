@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { CreateSurveyDtoRequest } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,10 +26,12 @@ type SurveyCreateForm = CreateSurveyDtoRequest;
 
 const SurveyCreatePage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const createSurvey = useCreateSurvey();
   const { activeOrganizationId } = useActiveOrganization();
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
   const { data: activeOrganization } = useOrganizationDetails(
-    activeOrganizationId ?? undefined,
+    resolvedOrgId,
   );
 
   const form = useForm<SurveyCreateForm>({
@@ -47,17 +49,17 @@ const SurveyCreatePage = () => {
   });
 
   const canCreateForOrganization =
-    !!activeOrganizationId &&
+    !!resolvedOrgId &&
     !!activeOrganization &&
     ["OWNER", "ADMIN"].includes(activeOrganization.currentUserRole);
+
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
 
   const onSubmit = async (values: SurveyCreateForm) => {
     const payload: CreateSurveyDtoRequest = {
       title: values.title,
       description: values.description || undefined,
-      organizationId: canCreateForOrganization
-        ? activeOrganizationId
-        : undefined,
+      organizationId: canCreateForOrganization ? resolvedOrgId : undefined,
       visibility: values.visibility,
       allowAnonymous: values.allowAnonymous,
       allowMultipleResponses: values.allowMultipleResponses,
@@ -69,9 +71,12 @@ const SurveyCreatePage = () => {
     try {
       const survey = await createSurvey.mutateAsync(payload);
       toast.success("Survey created successfully.");
-      navigate(`/app/surveys/${survey.id}`);
-    } catch {
-      toast.error("Failed to create survey.");
+      navigate(`${orgBasePath}/surveys/${survey.id}`);
+    } catch (error) {
+      toast.error(
+        (error as { message?: string })?.message ??
+          "Failed to create survey.",
+      );
     }
   };
 
@@ -182,7 +187,7 @@ const SurveyCreatePage = () => {
               <Button
                 variant="outline"
                 type="button"
-                onClick={() => navigate("/app/surveys")}
+                onClick={() => navigate(`${orgBasePath}/surveys`)}
               >
                 Cancel
               </Button>

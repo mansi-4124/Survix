@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PageStateCard } from "@/components/common/page-state-card";
 import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
@@ -9,12 +9,15 @@ import { PageReveal } from "@/components/common/page-reveal";
 
 const PollHistoryPage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const { activeOrganizationId } = useActiveOrganization();
-  const { data: polls, isLoading, isError } = useMyPolls(activeOrganizationId ?? undefined);
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
+  const { data: polls, isLoading, isError } = useMyPolls(resolvedOrgId);
   const deletePoll = useDeletePoll();
   const source = (polls ?? []).filter(
-    (poll) => !activeOrganizationId || poll.organizationId === activeOrganizationId,
+    (poll) => !resolvedOrgId || poll.organizationId === resolvedOrgId,
   );
+  const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
 
   const onDelete = async (pollId: string) => {
     const confirmed = window.confirm("Delete this poll permanently?");
@@ -33,7 +36,9 @@ const PollHistoryPage = () => {
             <h1 className="text-3xl font-bold">Poll History</h1>
             <p className="text-slate-600">Review and manage previous polls.</p>
           </div>
-          <Button onClick={() => navigate("/app/polls/create")}>Create Poll</Button>
+          <Button onClick={() => navigate(`${orgBasePath}/polls/create`)}>
+            Create Poll
+          </Button>
         </div>
 
         {isLoading ? (

@@ -12,18 +12,18 @@ export const useAuthInit = () => {
   } = useAuthStore();
   const initializedRef = useRef(false);
   const refreshWithTimeout = async (timeoutMs: number) => {
-    let timedOut = false;
-    const timeoutId = window.setTimeout(() => {
-      timedOut = true;
-    }, timeoutMs);
+    let timeoutId: number | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => {
+        reject(new Error("auth_refresh_timeout"));
+      }, timeoutMs);
+    });
     try {
-      const result = await authApi.refresh();
-      if (timedOut) {
-        throw new Error("auth_refresh_timeout");
-      }
-      return result;
+      return await Promise.race([authApi.refresh(), timeoutPromise]);
     } finally {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
     }
   };
 
@@ -68,7 +68,11 @@ export const useAuthInit = () => {
         const { user, tokens } = refreshed;
         setAuth(user, tokens?.accessToken);
       } catch (error) {
-        clearAuth();
+        const isTimeout =
+          error instanceof Error && error.message === "auth_refresh_timeout";
+        if (!isTimeout) {
+          clearAuth();
+        }
       } finally {
         setInitializing(false);
       }

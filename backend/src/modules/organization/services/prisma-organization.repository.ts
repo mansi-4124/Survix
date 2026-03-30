@@ -4,6 +4,7 @@ import {
   OrganizationAccountType,
   OrganizationMemberStatus,
   OrganizationRole,
+  OrganizationStatus,
 } from '@prisma/client';
 import {
   CreateOrganizationInput,
@@ -35,7 +36,7 @@ export class PrismaOrganizationRepository
         size: input.size,
         websiteUrl: input.websiteUrl,
         contactEmail: input.contactEmail,
-        status: 'ACTIVE',
+        status: OrganizationStatus.ACTIVE,
       },
     });
 
@@ -126,9 +127,20 @@ export class PrismaOrganizationRepository
 
   async listMembers(
     organizationId: string,
+    options?: { page?: number; limit?: number },
   ): Promise<OrganizationMemberDomain[]> {
+    const page = Math.max(1, options?.page ?? 1);
+    const limit = Math.max(1, Math.min(options?.limit ?? 20, 100));
+    const skip = (page - 1) * limit;
     const members = await this.prisma.organizationMember.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        status: {
+          not: OrganizationMemberStatus.LEFT,
+        },
+      },
+      skip,
+      take: limit,
       include: {
         user: {
           select: {

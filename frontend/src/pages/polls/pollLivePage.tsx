@@ -54,8 +54,9 @@ type ActivityItem = {
 };
 
 const PollLivePage = () => {
-  const { pollId } = useParams();
+  const { pollId, orgId } = useParams();
   const navigate = useNavigate();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   const { data: poll, isLoading: pollLoading, isError: pollError } = usePollForManagement(pollId);
   const { data: results, isLoading: resultsLoading, isError: resultsError } = usePollResults(pollId);
   const closePoll = useClosePoll();
@@ -413,7 +414,12 @@ const PollLivePage = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/app/polls")}>Back</Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`${orgBasePath}/polls`)}
+          >
+            Back
+          </Button>
           <Button
             variant="outline"
             onClick={async () => {

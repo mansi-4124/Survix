@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -48,9 +49,11 @@ import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CurrentOrganizationMembership } from './decorators/current-organization-membership.decorator';
 import type { OrganizationMemberDomain } from './domain/types/organization-member.type';
+import type { OrganizationDomain } from './domain/types/organization.type';
 import { SearchUsersDtoRequest } from './dto/request/search-users.dto.request';
 import { FileUploadInterceptor } from 'src/common/interceptors/file-upload.interceptor';
 import type { UploadedFileType } from 'src/common/types/uploaded-file.type';
+import { ListMembersQueryDto } from './dto/request/list-members-query.dto.request';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -84,16 +87,7 @@ export class OrganizationController {
     const { organization, membership } =
       await this.organizationService.createOrganization(user.sub, dto);
 
-    return {
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      logoUrl: organization.logoUrl,
-      role: membership.role,
-      status: organization.status,
-      accountType: organization.accountType,
-      isPersonal: organization.isPersonal,
-    };
+    return this.mapOrganizationSummary(organization, membership);
   }
 
   @Post('personal')
@@ -109,16 +103,7 @@ export class OrganizationController {
         user.email,
       );
 
-    return {
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      logoUrl: organization.logoUrl,
-      role: membership.role,
-      status: organization.status,
-      accountType: organization.accountType,
-      isPersonal: organization.isPersonal,
-    };
+    return this.mapOrganizationSummary(organization, membership);
   }
 
   /*
@@ -134,16 +119,9 @@ export class OrganizationController {
   ): Promise<OrganizationSummaryDtoResponse[]> {
     const items = await this.organizationService.getMyOrganizations(user.sub);
 
-    return items.map(({ organization, membership }) => ({
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      logoUrl: organization.logoUrl,
-      role: membership.role,
-      status: organization.status,
-      accountType: organization.accountType,
-      isPersonal: organization.isPersonal,
-    }));
+    return items.map(({ organization, membership }) =>
+      this.mapOrganizationSummary(organization, membership),
+    );
   }
 
   /*
@@ -157,7 +135,7 @@ export class OrganizationController {
   @ApiOperation({ summary: 'Get public organization profile' })
   @ApiResponse({ status: 200, type: PublicOrganizationDtoResponse })
   async getPublicOrganizationProfile(
-    @Param('slug') slug: string,
+    @Param('slug', SlugValidationPipe) slug: string,
     @CurrentUser() user?: { sub?: string },
   ): Promise<PublicOrganizationDtoResponse> {
     return this.organizationService.getPublicOrganizationProfile(slug, user?.sub);
@@ -215,22 +193,7 @@ export class OrganizationController {
   ): Promise<OrganizationDtoResponse> {
     const updated = await this.organizationService.editOrganization(orgId, dto);
 
-    return {
-      id: updated.id,
-      name: updated.name,
-      slug: updated.slug,
-      logoUrl: updated.logoUrl,
-      ownerId: updated.ownerId,
-      description: updated.description,
-      industry: updated.industry,
-      size: updated.size,
-      websiteUrl: updated.websiteUrl,
-      contactEmail: updated.contactEmail,
-      visibility: updated.visibility,
-      status: updated.status,
-      accountType: updated.accountType,
-      isPersonal: updated.isPersonal,
-    };
+    return this.mapOrganizationDto(updated);
   }
 
   /*
@@ -241,7 +204,12 @@ export class OrganizationController {
   @Post(':orgId/logo')
   @UseGuards(OrganizationMemberGuard, OrganizationRoleGuard)
   @OrganizationRoles(OrganizationRoleDomain.OWNER, OrganizationRoleDomain.ADMIN)
-  @UseInterceptors(FileUploadInterceptor('file'))
+  @UseInterceptors(
+    FileUploadInterceptor('file', {
+      maxSize: 2 * 1024 * 1024,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    }),
+  )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload organization logo' })
   @ApiResponse({ status: 200, type: OrganizationDtoResponse })
@@ -254,22 +222,7 @@ export class OrganizationController {
       file,
     );
 
-    return {
-      id: updated.id,
-      name: updated.name,
-      slug: updated.slug,
-      logoUrl: updated.logoUrl,
-      ownerId: updated.ownerId,
-      description: updated.description,
-      industry: updated.industry,
-      size: updated.size,
-      websiteUrl: updated.websiteUrl,
-      contactEmail: updated.contactEmail,
-      visibility: updated.visibility,
-      status: updated.status,
-      accountType: updated.accountType,
-      isPersonal: updated.isPersonal,
-    };
+    return this.mapOrganizationDto(updated);
   }
 
   /*
@@ -281,6 +234,7 @@ export class OrganizationController {
   @UseGuards(OrganizationMemberGuard, OrganizationRoleGuard)
   @OrganizationRoles(OrganizationRoleDomain.OWNER)
   @ApiOperation({ summary: 'Soft delete organization' })
+  @HttpCode(HttpStatus.NO_CONTENT)
   async softDeleteOrganization(
     @Param('orgId', ParseObjectIdPipe) orgId: string,
   ): Promise<void> {
@@ -322,7 +276,14 @@ export class OrganizationController {
     @Param('orgId', ParseObjectIdPipe) orgId: string,
     @Body() dto: InviteMemberDtoRequest,
     @CurrentOrganizationMembership() membership: OrganizationMemberDomain,
+    @CurrentUser() user: { sub: string; email?: string },
   ): Promise<{ message: string; expiresInDays: number }> {
+    const normalizedEmail = dto.email?.toLowerCase().trim();
+    const currentEmail = user.email?.toLowerCase().trim();
+    if (normalizedEmail && currentEmail && normalizedEmail === currentEmail) {
+      throw new BadRequestException('Cannot invite yourself');
+    }
+
     await this.organizationService.inviteMember(
       orgId,
       membership,
@@ -457,8 +418,9 @@ export class OrganizationController {
   @ApiResponse({ status: 200, type: [OrganizationMemberDtoResponse] })
   async listMembers(
     @Param('orgId', ParseObjectIdPipe) orgId: string,
+    @Query() query: ListMembersQueryDto,
   ): Promise<OrganizationMemberDtoResponse[]> {
-    const members = await this.organizationService.listMembers(orgId);
+    const members = await this.organizationService.listMembers(orgId, query);
 
     return members.map((m) => ({
       id: m.id,
@@ -480,7 +442,45 @@ export class OrganizationController {
   async searchUsers(
     @Param('orgId', ParseObjectIdPipe) _orgId: string,
     @Query() query: SearchUsersDtoRequest,
+    @CurrentUser() user: { sub: string },
   ): Promise<OrganizationUserSearchDtoResponse[]> {
-    return this.organizationService.searchUsers(query.query);
+    return this.organizationService.searchUsers(query.query, user.sub);
+  }
+
+  private mapOrganizationSummary(
+    organization: OrganizationDomain,
+    membership: OrganizationMemberDomain,
+  ): OrganizationSummaryDtoResponse {
+    return {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      logoUrl: organization.logoUrl,
+      role: membership.role,
+      status: organization.status,
+      accountType: organization.accountType,
+      isPersonal: organization.isPersonal,
+    };
+  }
+
+  private mapOrganizationDto(
+    organization: OrganizationDomain,
+  ): OrganizationDtoResponse {
+    return {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      logoUrl: organization.logoUrl,
+      ownerId: organization.ownerId,
+      description: organization.description,
+      industry: organization.industry,
+      size: organization.size,
+      websiteUrl: organization.websiteUrl,
+      contactEmail: organization.contactEmail,
+      visibility: organization.visibility,
+      status: organization.status,
+      accountType: organization.accountType,
+      isPersonal: organization.isPersonal,
+    };
   }
 }

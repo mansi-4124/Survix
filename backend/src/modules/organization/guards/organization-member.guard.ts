@@ -4,16 +4,12 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { OrganizationMemberStatus } from '@prisma/client';
 import { OrganizationService } from '../services/organization.service';
 
 @Injectable()
 export class OrganizationMemberGuard implements CanActivate {
-  constructor(
-    private readonly organizationService: OrganizationService,
-    private readonly reflector: Reflector,
-  ) {}
+  constructor(private readonly organizationService: OrganizationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

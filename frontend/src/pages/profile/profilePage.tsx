@@ -169,7 +169,7 @@ const ProfilePage = () => {
                       <Badge variant="outline">{org.role}</Badge>
                     </div>
                     <Link
-                      to="/app/organization"
+                      to={`/app/org/${org.id}/organization`}
                       className="text-xs text-indigo-600 font-medium"
                     >
                       Open organization

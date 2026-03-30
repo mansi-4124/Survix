@@ -59,10 +59,14 @@ const SurveyResponsePage = () => {
     survey?.status === "CLOSED" ||
     (survey?.endsAt ? new Date(survey.endsAt).getTime() <= Date.now() : false);
   const visibility = (survey as any)?.visibility ?? "PUBLIC";
+  const privateResultsLink =
+    survey?.organizationId && surveyId
+      ? `/app/org/${survey.organizationId}/surveys/${surveyId}/results`
+      : "/app";
   const closedTarget = isClosed
     ? visibility === "PUBLIC"
       ? `/survey/results/${surveyId}`
-      : `/app/surveys/${surveyId}/results`
+      : privateResultsLink
     : null;
 
   useEffect(() => {

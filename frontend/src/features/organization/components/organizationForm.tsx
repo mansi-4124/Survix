@@ -12,13 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreateOrganizationDtoRequest } from "@/api";
+import {
+  OrganizationVisibility,
+  type OrganizationVisibility as OrganizationVisibilityType,
+} from "@/features/organization/constants/organization-visibility";
 import { slugify } from "@/features/organization/utils/slugify";
 
 export type OrganizationFormValues = {
   name: string;
   slug: string;
-  visibility: CreateOrganizationDtoRequest.visibility;
+  visibility: OrganizationVisibilityType;
   description: string;
   industry: string;
   size: string;
@@ -107,7 +110,7 @@ export const OrganizationForm = ({
               render={({ field }) => (
                 <Select
                   value={
-                    field.value ?? CreateOrganizationDtoRequest.visibility.PRIVATE
+                    field.value ?? OrganizationVisibility.PRIVATE
                   }
                   onValueChange={field.onChange}
                 >
@@ -115,10 +118,10 @@ export const OrganizationForm = ({
                     <SelectValue placeholder="Select visibility" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={CreateOrganizationDtoRequest.visibility.PUBLIC}>
+                    <SelectItem value={OrganizationVisibility.PUBLIC}>
                       PUBLIC
                     </SelectItem>
-                    <SelectItem value={CreateOrganizationDtoRequest.visibility.PRIVATE}>
+                    <SelectItem value={OrganizationVisibility.PRIVATE}>
                       PRIVATE
                     </SelectItem>
                   </SelectContent>

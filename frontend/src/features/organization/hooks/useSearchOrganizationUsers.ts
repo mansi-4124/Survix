@@ -11,6 +11,6 @@ export const useSearchOrganizationUsers = (orgId?: string, query?: string) => {
         ? organizationKeys.usersSearch(orgId, normalizedQuery)
         : organizationKeys.all,
     queryFn: () => organizationApi.searchUsers(orgId as string, normalizedQuery),
-    enabled: Boolean(orgId && normalizedQuery.length >= 2),
+    enabled: !!orgId && normalizedQuery.length >= 2,
   });
 };

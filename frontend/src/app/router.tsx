@@ -5,6 +5,7 @@ import { PageLoader } from "@/components/common/page-loader";
 import { AppLayout } from "@/layouts/appLayout";
 import { RequireAuth } from "@/app/require-auth";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useOrganizationStore } from "@/features/organization/store/organization.store";
 
 const LoginPage = lazy(() => import("@/pages/auth/loginPage"));
 const SignupPage = lazy(() => import("@/pages/auth/signupPage"));
@@ -64,7 +65,7 @@ const PublicOrganizationPage = lazy(
 
 const withSuspense = (element: ReactElement) => (
   <Suspense
-    fallback={<PageLoader fullScreen message="Loading page..." />}
+    fallback={<PageLoader fullScreen message="" />}
   >
     {element}
   </Suspense>
@@ -76,6 +77,36 @@ const RootIndex = () => {
     return <Navigate to="/app" replace />;
   }
   return withSuspense(<LandingPage />);
+};
+
+const AppIndexRedirect = () => {
+  const activeOrganizationId = useOrganizationStore(
+    (s) => s.activeOrganizationId,
+  );
+  if (activeOrganizationId) {
+    return (
+      <Navigate
+        to={`/app/org/${activeOrganizationId}/dashboard`}
+        replace
+      />
+    );
+  }
+  return <Navigate to="/app/onboarding" replace />;
+};
+
+const OrganizationRedirect = () => {
+  const activeOrganizationId = useOrganizationStore(
+    (s) => s.activeOrganizationId,
+  );
+  if (activeOrganizationId) {
+    return (
+      <Navigate
+        to={`/app/org/${activeOrganizationId}/organization`}
+        replace
+      />
+    );
+  }
+  return <Navigate to="/app/onboarding" replace />;
 };
 
 export const router = createBrowserRouter([
@@ -113,49 +144,57 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
         children: [
-          { index: true, element: withSuspense(<DashboardPage />) },
+          { index: true, element: <AppIndexRedirect /> },
           { path: "onboarding", element: withSuspense(<OnboardingPage />) },
           { path: "profile", element: withSuspense(<ProfilePage />) },
-          { path: "organization", element: withSuspense(<OrganizationPage />) },
+          { path: "organization", element: <OrganizationRedirect /> },
           {
             path: "organization/create",
             element: withSuspense(<OrganizationCreatePage />),
           },
           {
-            path: "organization/edit",
+            path: "org/:orgId/dashboard",
+            element: withSuspense(<DashboardPage />),
+          },
+          {
+            path: "org/:orgId/organization",
+            element: withSuspense(<OrganizationPage />),
+          },
+          {
+            path: "org/:orgId/organization/edit",
             element: withSuspense(<OrganizationEditPage />),
           },
-          { path: "surveys", element: withSuspense(<SurveysPage />) },
+          { path: "org/:orgId/surveys", element: withSuspense(<SurveysPage />) },
           {
-            path: "surveys/create",
+            path: "org/:orgId/surveys/create",
             element: withSuspense(<SurveyCreatePage />),
           },
           {
-            path: "surveys/:surveyId/members",
+            path: "org/:orgId/surveys/:surveyId/members",
             element: withSuspense(<SurveyMembersPage />),
           },
           {
-            path: "surveys/:surveyId/results",
+            path: "org/:orgId/surveys/:surveyId/results",
             element: withSuspense(<SurveyPrivateResultsPage />),
           },
           {
-            path: "surveys/:surveyId",
+            path: "org/:orgId/surveys/:surveyId",
             element: withSuspense(<SurveyPage />),
           },
-          { path: "polls", element: withSuspense(<PollsPage />) },
+          { path: "org/:orgId/polls", element: withSuspense(<PollsPage />) },
           {
-            path: "polls/create",
+            path: "org/:orgId/polls/create",
             element: withSuspense(<PollCreatePage />),
           },
           {
-            path: "polls/history",
+            path: "org/:orgId/polls/history",
             element: withSuspense(<PollHistoryPage />),
           },
           {
-            path: "polls/:pollId/live",
+            path: "org/:orgId/polls/:pollId/live",
             element: withSuspense(<PollLivePage />),
           },
-          { path: "search", element: withSuspense(<SearchPage />) },
+          { path: "org/:orgId/search", element: withSuspense(<SearchPage />) },
         ],
       },
     ],

@@ -1,21 +1,28 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { CreateOrganizationDtoRequest } from "@/api";
+import { useNavigate, useParams } from "react-router-dom";
+import { OrganizationVisibility } from "@/features/organization/constants/organization-visibility";
+import type { UpdateOrganizationDtoRequest } from "@/api";
 import { OrganizationForm } from "@/features/organization/components/organizationForm";
 import type { OrganizationFormValues } from "@/features/organization/components/organizationForm";
 import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
 import { useEditOrganization } from "@/features/organization/hooks/useEditOrganization";
 import { useOrganizationDetails } from "@/features/organization/hooks/useOrganizationDetails";
+import { useOrganizationStore } from "@/features/organization/store/organization.store";
 import { asString } from "@/lib/normalize";
 import { toast } from "@/lib/toast";
 import { PageReveal } from "@/components/common/page-reveal";
 
 const OrganizationEditPage = () => {
   const navigate = useNavigate();
+  const { orgId } = useParams();
   const { activeOrganizationId } = useActiveOrganization();
+  const setActiveOrganizationId = useOrganizationStore(
+    (state) => state.setActiveOrganizationId,
+  );
+  const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
   const { data: organizationDetails } = useOrganizationDetails(
-    activeOrganizationId ?? undefined,
+    resolvedOrgId,
   );
   const editOrganization = useEditOrganization();
   const form = useForm<OrganizationFormValues>({
@@ -23,7 +30,7 @@ const OrganizationEditPage = () => {
     defaultValues: {
       name: "",
       slug: "",
-      visibility: CreateOrganizationDtoRequest.visibility.PRIVATE,
+      visibility: OrganizationVisibility.PRIVATE,
       description: "",
       industry: "",
       size: "",
@@ -31,6 +38,12 @@ const OrganizationEditPage = () => {
       contactEmail: "",
     },
   });
+
+  useEffect(() => {
+    if (orgId) {
+      setActiveOrganizationId(orgId);
+    }
+  }, [orgId, setActiveOrganizationId]);
 
   useEffect(() => {
     if (!organizationDetails) {
@@ -49,22 +62,22 @@ const OrganizationEditPage = () => {
     form.setValue(
       "visibility",
       organizationDetails.organization.visibility ??
-        CreateOrganizationDtoRequest.visibility.PRIVATE,
+        OrganizationVisibility.PRIVATE,
       { shouldValidate: true },
     );
   }, [form, organizationDetails]);
 
   const handleSubmit = async (values: OrganizationFormValues) => {
-    if (!activeOrganizationId) {
+    if (!resolvedOrgId) {
       return;
     }
 
     try {
       await editOrganization.mutateAsync({
-        orgId: activeOrganizationId,
+        orgId: resolvedOrgId,
         data: {
           name: values.name.trim(),
-          visibility: values.visibility,
+          visibility: values.visibility as UpdateOrganizationDtoRequest.visibility,
           description: values.description || undefined,
           industry: values.industry || undefined,
           size: values.size || undefined,
@@ -74,9 +87,12 @@ const OrganizationEditPage = () => {
       });
 
       toast.success("Organization details updated.");
-      navigate("/app/organization");
-    } catch {
-      toast.error("Failed to update organization details.");
+      navigate(`/app/org/${resolvedOrgId}/organization`);
+    } catch (error) {
+      toast.error(
+        (error as { message?: string })?.message ??
+          "Failed to update organization details.",
+      );
     }
   };
 

@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Activity,
@@ -110,6 +110,8 @@ const formatRelativeDate = (value: string) => {
 };
 
 const DashboardPage = () => {
+  const { orgId } = useParams();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   const { user } = useAuthStore();
   const { activeOrganizationId } = useActiveOrganization();
   const { data: activeOrganization } = useOrganizationDetails(
@@ -231,13 +233,13 @@ const DashboardPage = () => {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link to="/app/surveys/create">
+              <Link to={`${orgBasePath}/surveys/create`}>
                 <Button className="bg-white text-indigo-700 hover:bg-slate-100">
                   <Plus className="w-4 h-4 mr-2" />
                   New Survey
                 </Button>
               </Link>
-              <Link to="/app/polls/create">
+              <Link to={`${orgBasePath}/polls/create`}>
                 <Button className="bg-white text-indigo-700 hover:bg-slate-100">
                   <Radio className="w-4 h-4 mr-2" />
                   New Poll
@@ -416,7 +418,10 @@ const DashboardPage = () => {
                 ) : null}
 
                 {endingSoonSurveys.map((survey) => (
-                  <Link key={survey.id} to={`/app/surveys/${survey.id}`}>
+                  <Link
+                    key={survey.id}
+                    to={`${orgBasePath}/surveys/${survey.id}`}
+                  >
                     <Card className="p-4 border-slate-200 hover:shadow-sm transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
@@ -437,7 +442,10 @@ const DashboardPage = () => {
                 ))}
 
                 {endingSoonPolls.map((poll) => (
-                  <Link key={poll.id} to={`/app/polls/${poll.id}/live`}>
+                  <Link
+                    key={poll.id}
+                    to={`${orgBasePath}/polls/${poll.id}/live`}
+                  >
                     <Card className="p-4 border-slate-200 hover:shadow-sm transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
@@ -524,7 +532,10 @@ const DashboardPage = () => {
               </div>
               <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
                 <span>Public surveys in the marketplace.</span>
-                <Link to="/app/surveys" className="text-indigo-600 font-medium">
+                <Link
+                  to={`${orgBasePath}/surveys`}
+                  className="text-indigo-600 font-medium"
+                >
                   View all <ArrowUpRight className="inline w-4 h-4" />
                 </Link>
               </div>

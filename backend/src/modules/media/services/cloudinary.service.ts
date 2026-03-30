@@ -89,4 +89,25 @@ export class CloudinaryService {
       upload.end(file.buffer);
     });
   }
+
+  async deleteFile(
+    publicId: string,
+    resourceType: 'image' | 'video' | 'raw' | 'auto' = 'image',
+  ): Promise<void> {
+    this.ensureConfigured();
+
+    try {
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceType,
+        invalidate: true,
+      });
+    } catch (error: any) {
+      this.logger.error(
+        `Cloudinary delete failed: ${error?.message ?? error}`,
+      );
+      throw new BadGatewayException(
+        error?.message ?? 'Cloudinary delete failed',
+      );
+    }
+  }
 }

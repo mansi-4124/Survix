@@ -52,7 +52,10 @@ export interface IOrganizationMemberRepository {
     userId: string,
   ): Promise<OrganizationMemberDomain | null>;
 
-  listMembers(organizationId: string): Promise<OrganizationMemberDomain[]>;
+  listMembers(
+    organizationId: string,
+    options?: { page?: number; limit?: number },
+  ): Promise<OrganizationMemberDomain[]>;
 
   countActiveOwners(organizationId: string): Promise<number>;
 

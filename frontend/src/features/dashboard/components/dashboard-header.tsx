@@ -1,8 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const DashboardHeader = () => {
+  const { orgId } = useParams();
+  const orgBasePath = orgId ? `/app/org/${orgId}` : "/app";
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
@@ -11,7 +13,7 @@ export const DashboardHeader = () => {
           Browse and respond to published public surveys.
         </p>
       </div>
-      <Link to="/app/surveys/create">
+      <Link to={`${orgBasePath}/surveys/create`}>
         <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
           <Plus className="w-4 h-4 mr-2" />
           Create Survey

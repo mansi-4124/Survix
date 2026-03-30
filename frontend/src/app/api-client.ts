@@ -14,6 +14,7 @@ export const configureApiClient = () => {
         : window.location.origin;
   OpenAPI.WITH_CREDENTIALS = true;
   OpenAPI.CREDENTIALS = "include";
+  axios.defaults.timeout = 8000;
 };
 
 configureApiClient();
