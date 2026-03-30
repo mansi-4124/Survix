@@ -39,6 +39,7 @@ import { asDisplayString } from "@/lib/normalize";
 import { toast } from "@/lib/toast";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useEffect, useRef, useState } from "react";
+import { PageLoader } from "@/components/common/page-loader";
 
 export const AppLayout = () => {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
   const { organizations, activeOrganizationId, setActiveOrganizationId } =
     useActiveOrganization();
   const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
@@ -62,6 +63,10 @@ export const AppLayout = () => {
   const isPersonalAccount =
     organizationDetails?.organization.accountType === "PERSONAL";
   const orgBasePath = resolvedOrgId ? `/app/org/${resolvedOrgId}` : "/app";
+
+  if (!hasHydrated) {
+    return <PageLoader fullScreen message="" />;
+  }
 
   useEffect(() => {
     if (orgId) {
@@ -324,7 +329,9 @@ export const AppLayout = () => {
                   />
                 ) : (
                   <span className="text-xs font-semibold text-slate-600">
-                    {(user?.name ?? user?.email ?? "U").slice(0, 1).toUpperCase()}
+                    {(user?.name ?? user?.email ?? "U")
+                      .slice(0, 1)
+                      .toUpperCase()}
                   </span>
                 )}
               </button>
@@ -491,4 +498,3 @@ export const AppLayout = () => {
     </div>
   );
 };
-
