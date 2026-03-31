@@ -9,6 +9,7 @@ import type {
 } from "@/api";
 import { AuthenticationService } from "@/api/services/AuthenticationService";
 import { unwrapApiResponse } from "@/lib/api-response";
+import { refreshSession } from "./refresh-session";
 
 export const authApi = {
   login: async (data: LoginDto) =>
@@ -26,10 +27,7 @@ export const authApi = {
       await AuthenticationService.authControllerVerifyEmail(data),
     ),
 
-  refresh: async () =>
-    unwrapApiResponse<AuthResponseDto>(
-      await AuthenticationService.authControllerRefresh(),
-    ),
+  refresh: async () => refreshSession(),
 
   logout: async () =>
     unwrapApiResponse<{ message: string }>(

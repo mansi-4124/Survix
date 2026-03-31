@@ -1,8 +1,7 @@
 import { OpenAPI } from "@/api";
 import axios from "axios";
-import { AuthenticationService } from "@/api/services/AuthenticationService";
 import { useAuthStore } from "@/features/auth/store/auth.store";
-import { unwrapApiResponse } from "@/lib/api-response";
+import { refreshSession } from "@/features/auth/api/refresh-session";
 
 axios.interceptors.response.use(
   (response) => response,
@@ -28,9 +27,7 @@ axios.interceptors.response.use(
     if (!refreshPromise) {
       refreshPromise = (async () => {
         try {
-          const refreshed = unwrapApiResponse<any>(
-            await AuthenticationService.authControllerRefresh(),
-          );
+          const refreshed = await refreshSession();
           useAuthStore
             .getState()
             .setAuth(refreshed.user, refreshed.tokens?.accessToken);
