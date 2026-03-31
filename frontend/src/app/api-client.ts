@@ -21,6 +21,10 @@ axios.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    if (isRefreshBlocked()) {
+      return Promise.reject(error);
+    }
+
     if (!refreshPromise) {
       refreshPromise = (async () => {
         try {
@@ -39,6 +43,12 @@ axios.interceptors.response.use(
             useAuthStore.getState().clearAuth();
           }
           if (status === 429 || status === 500 || status === 503) {
+            if (status === 429) {
+              const retryAfter = (refreshError as any)?.response?.headers?.[
+                "retry-after"
+              ] as string | undefined;
+              blockRefreshUntil(retryAfter);
+            }
             return false;
           }
           return false;
@@ -81,6 +91,7 @@ export const configureApiClient = () => {
 configureApiClient();
 
 let refreshPromise: Promise<boolean> | null = null;
+let refreshBlockedUntil: number | null = null;
 
 const shouldSkipRefresh = (url?: string): boolean => {
   if (!url) return false;
@@ -91,4 +102,30 @@ const shouldSkipRefresh = (url?: string): boolean => {
     url.includes("/auth/refresh") ||
     url.includes("/auth/logout")
   );
+};
+
+const isRefreshBlocked = (): boolean => {
+  if (refreshBlockedUntil == null) return false;
+  if (Date.now() >= refreshBlockedUntil) {
+    refreshBlockedUntil = null;
+    return false;
+  }
+  return true;
+};
+
+const blockRefreshUntil = (retryAfter?: string) => {
+  let blockMs = 30_000;
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (!Number.isNaN(seconds) && Number.isFinite(seconds) && seconds > 0) {
+      blockMs = Math.min(seconds * 1000, 5 * 60_000);
+    } else {
+      const dateMs = Date.parse(retryAfter);
+      if (!Number.isNaN(dateMs)) {
+        blockMs = Math.min(dateMs - Date.now(), 5 * 60_000);
+      }
+    }
+  }
+  if (blockMs <= 0) return;
+  refreshBlockedUntil = Date.now() + blockMs;
 };
