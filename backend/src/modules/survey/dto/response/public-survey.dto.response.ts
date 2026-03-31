@@ -23,6 +23,6 @@ export class PublicSurveyDtoResponse {
   @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty()
-  hasResponded: boolean;
+  @ApiProperty({ required: false })
+  hasResponded?: boolean;
 }

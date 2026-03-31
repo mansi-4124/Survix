@@ -9,6 +9,7 @@ export type SurveyDomain = {
   status: SurveyStatus;
   visibility: SurveyVisibility;
   allowAnonymous: boolean;
+  allowMultipleResponses: boolean;
   randomizeQuestions: boolean;
   revision: number;
   startDate?: Date | null;

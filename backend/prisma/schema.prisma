@@ -54,6 +54,7 @@ enum OrganizationMemberStatus {
 
 enum SurveyStatus {
   DRAFT
+  SCHEDULED
   PUBLISHED
   CLOSED
 }
@@ -232,6 +233,7 @@ model Survey {
   status         SurveyStatus
   visibility     SurveyVisibility
   allowAnonymous Boolean
+  allowMultipleResponses Boolean @default(false)
   randomizeQuestions Boolean
   revision       Int              @default(1)
 
@@ -255,6 +257,7 @@ model Survey {
   @@index([ownerUserId])
   @@index([status])
   @@index([visibility, status])
+  @@index([startDate])
   @@index([endDate])
 }
 

@@ -19,7 +19,13 @@ export class QuestionSettingsValidationPipe implements PipeTransform<
     if (typesNeedingOptions.includes(value.type)) {
       const options = settings.options;
 
-      if (!Array.isArray(options) || options.length === 0) {
+      if (
+        !Array.isArray(options) ||
+        options.length === 0 ||
+        options.some(
+          (option) => typeof option !== 'string' || !option.trim(),
+        )
+      ) {
         throw new BadRequestException(
           `settings.options is required for ${value.type}`,
         );

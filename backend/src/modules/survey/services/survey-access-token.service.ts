@@ -23,7 +23,7 @@ export class SurveyAccessTokenService {
     userId: string,
     expiresAt?: Date | null,
   ): Promise<string> {
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(48).toString('hex');
     const now = Date.now();
     const resolvedTtlSeconds =
       expiresAt && !Number.isNaN(expiresAt.getTime())
@@ -39,18 +39,25 @@ export class SurveyAccessTokenService {
       expiresAt: resolvedExpiresAt,
     };
 
-    await this.redis.set(this.getKey(token), JSON.stringify(payload), {
+    await this.redis.set(this.getKey(surveyId, token), JSON.stringify(payload), {
       ex: resolvedTtlSeconds,
     });
 
     return token;
   }
 
-  async validateToken(token: string): Promise<SurveyAccessTokenPayload | null> {
-    return this.redis.get<SurveyAccessTokenPayload>(this.getKey(token));
+  async validateToken(
+    surveyId: string,
+    token: string,
+  ): Promise<SurveyAccessTokenPayload | null> {
+    const data = await this.redis.get<string>(this.getKey(surveyId, token));
+    if (!data) {
+      return null;
+    }
+    return JSON.parse(data) as SurveyAccessTokenPayload;
   }
 
-  private getKey(token: string): string {
-    return `survey:access:${token}`;
+  private getKey(surveyId: string, token: string): string {
+    return `survey:access:${surveyId}:${token}`;
   }
 }

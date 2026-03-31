@@ -15,8 +15,10 @@ export class RevisionIncrementInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const surveyId = request.survey?.id as string | undefined;
+    const method = String(request.method ?? '').toUpperCase();
+    const shouldIncrement = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
-    if (!surveyId) {
+    if (!surveyId || !shouldIncrement) {
       return next.handle();
     }
 

@@ -21,16 +21,19 @@ export class SurveySummaryDtoResponse {
   allowAnonymous: boolean;
 
   @ApiProperty()
+  allowMultipleResponses: boolean;
+
+  @ApiProperty()
   randomizeQuestions: boolean;
 
   @ApiProperty({ required: false })
   organizationId?: string | null;
 
   @ApiProperty({ required: false })
-  startsAt?: Date | null;
+  startDate?: Date | null;
 
   @ApiProperty({ required: false })
-  endsAt?: Date | null;
+  endDate?: Date | null;
 
   @ApiProperty({ required: false })
   publishedAt?: Date | null;

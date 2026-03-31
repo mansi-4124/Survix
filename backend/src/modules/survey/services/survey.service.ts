@@ -37,8 +37,8 @@ export class SurveyService {
   ) {}
 
   async createSurvey(userId: string, dto: CreateSurveyDtoRequest) {
-    const startsAt = dto.startsAt ? new Date(dto.startsAt) : null;
-    const endsAt = dto.endsAt ? new Date(dto.endsAt) : null;
+    const startsAt = dto.startDate ? new Date(dto.startDate) : null;
+    const endsAt = dto.endDate ? new Date(dto.endDate) : null;
     this.assertValidSchedule(startsAt, endsAt);
 
     let creatorOrgRole: OrganizationRole | null = null;
@@ -88,12 +88,11 @@ export class SurveyService {
           title: dto.title,
           description: dto.description,
           organizationId: dto.organizationId,
-          ownerUserId: dto.organizationId
-            ? (organizationOwners[0]?.userId ?? userId)
-            : userId,
+          ownerUserId: userId,
           status: SurveyStatus.DRAFT,
           visibility: dto.visibility,
           allowAnonymous: dto.allowAnonymous,
+          allowMultipleResponses: dto.allowMultipleResponses ?? false,
           randomizeQuestions: dto.randomizeQuestions ?? false,
           startDate: startsAt,
           endDate: endsAt,
@@ -195,10 +194,11 @@ export class SurveyService {
         status: SurveyStatus;
         visibility: SurveyVisibility;
         allowAnonymous: boolean;
+        allowMultipleResponses: boolean;
         randomizeQuestions: boolean;
         organizationId: string | null;
-        startsAt: Date | null;
-        endsAt: Date | null;
+        startDate: Date | null;
+        endDate: Date | null;
         publishedAt: Date | null;
         role: SurveyRole;
         createdAt: Date;
@@ -215,9 +215,10 @@ export class SurveyService {
         visibility: membership.survey.visibility,
         allowAnonymous: membership.survey.allowAnonymous,
         randomizeQuestions: membership.survey.randomizeQuestions,
+        allowMultipleResponses: membership.survey.allowMultipleResponses,
         organizationId: membership.survey.organizationId,
-        startsAt: membership.survey.startDate,
-        endsAt: membership.survey.endDate,
+        startDate: membership.survey.startDate,
+        endDate: membership.survey.endDate,
         publishedAt: membership.survey.publishedAt,
         role: membership.role,
         createdAt: membership.survey.createdAt,
@@ -237,9 +238,10 @@ export class SurveyService {
         visibility: survey.visibility,
         allowAnonymous: survey.allowAnonymous,
         randomizeQuestions: survey.randomizeQuestions,
+        allowMultipleResponses: survey.allowMultipleResponses,
         organizationId: survey.organizationId,
-        startsAt: survey.startDate,
-        endsAt: survey.endDate,
+        startDate: survey.startDate,
+        endDate: survey.endDate,
         publishedAt: survey.publishedAt,
         role: SurveyRole.OWNER,
         createdAt: survey.createdAt,
@@ -255,7 +257,12 @@ export class SurveyService {
   async updateSurvey(surveyId: string, dto: UpdateSurveyDtoRequest) {
     const existing = await this.prisma.survey.findUnique({
       where: { id: surveyId },
-      select: { startDate: true, endDate: true },
+      select: {
+        startDate: true,
+        endDate: true,
+        visibility: true,
+        allowAnonymous: true,
+      },
     });
 
     if (!existing) {
@@ -263,18 +270,29 @@ export class SurveyService {
     }
 
     const startsAt =
-      dto.startsAt !== undefined
-        ? dto.startsAt
-          ? new Date(dto.startsAt)
+      dto.startDate !== undefined
+        ? dto.startDate
+          ? new Date(dto.startDate)
           : null
         : existing.startDate;
     const endsAt =
-      dto.endsAt !== undefined
-        ? dto.endsAt
-          ? new Date(dto.endsAt)
+      dto.endDate !== undefined
+        ? dto.endDate
+          ? new Date(dto.endDate)
           : null
         : existing.endDate;
-    this.assertValidSchedule(startsAt, endsAt);
+    const nextVisibility = dto.visibility ?? existing.visibility;
+    const nextAllowAnonymous = dto.allowAnonymous ?? existing.allowAnonymous;
+    if (nextVisibility === SurveyVisibility.PRIVATE && nextAllowAnonymous) {
+      throw new BadRequestException(
+        'Private surveys cannot allow anonymous responses',
+      );
+    }
+
+    this.assertValidSchedule(startsAt, endsAt, {
+      checkStartPast: dto.startDate !== undefined,
+      checkEndPast: dto.endDate !== undefined,
+    });
 
     const updated = await this.prisma.survey.update({
       where: { id: surveyId },
@@ -283,9 +301,10 @@ export class SurveyService {
         description: dto.description,
         visibility: dto.visibility,
         allowAnonymous: dto.allowAnonymous,
+        allowMultipleResponses: dto.allowMultipleResponses,
         randomizeQuestions: dto.randomizeQuestions,
-        startDate: dto.startsAt !== undefined ? startsAt : undefined,
-        endDate: dto.endsAt !== undefined ? endsAt : undefined,
+        startDate: dto.startDate !== undefined ? startsAt : undefined,
+        endDate: dto.endDate !== undefined ? endsAt : undefined,
         revision: { increment: 1 },
       },
       select: { revision: true },
@@ -337,13 +356,13 @@ export class SurveyService {
       await this.prisma.survey.update({
         where: { id: surveyId },
         data: {
-          status: SurveyStatus.DRAFT,
-          publishedAt: now,
+          status: SurveyStatus.SCHEDULED,
+          publishedAt: null,
         },
       });
 
       return {
-        status: SurveyStatus.DRAFT,
+        status: SurveyStatus.SCHEDULED,
       };
     }
 
@@ -358,8 +377,7 @@ export class SurveyService {
     const survey = await this.prisma.survey.findFirst({
       where: {
         id: surveyId,
-        status: SurveyStatus.DRAFT,
-        publishedAt: { not: null },
+        status: SurveyStatus.SCHEDULED,
         OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       },
       include: {
@@ -434,6 +452,19 @@ export class SurveyService {
       );
     }
 
+    const responseCount = await this.prisma.response.count({
+      where: {
+        surveyId,
+        status: ResponseStatus.COMPLETED,
+      },
+    });
+
+    if (responseCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete a published survey with responses',
+      );
+    }
+
     await this.prisma.survey.update({
       where: { id: surveyId },
       data: {
@@ -477,8 +508,8 @@ export class SurveyService {
           visibility: survey.visibility,
           allowAnonymous: survey.allowAnonymous,
           randomizeQuestions: survey.randomizeQuestions,
-          startDate: survey.startDate,
-          endDate: survey.endDate,
+          startDate: null,
+          endDate: null,
           deletedAt: null,
         },
       });
@@ -530,28 +561,32 @@ export class SurveyService {
 
   async searchPublicSurveys(search?: string, user?: TokenPayload) {
     const normalizedSearch = search?.trim();
-      const where: Prisma.SurveyWhereInput = {
-        visibility: SurveyVisibility.PUBLIC,
-        status: { in: [SurveyStatus.PUBLISHED, SurveyStatus.CLOSED] },
-        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
-      ...(normalizedSearch
-        ? {
-            OR: [
+    const where: Prisma.SurveyWhereInput = {
+      visibility: SurveyVisibility.PUBLIC,
+      status: { in: [SurveyStatus.PUBLISHED, SurveyStatus.CLOSED] },
+      AND: [
+        { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
+        ...(normalizedSearch
+          ? [
               {
-                title: {
-                  contains: normalizedSearch,
-                  mode: 'insensitive',
-                },
+                OR: [
+                  {
+                    title: {
+                      contains: normalizedSearch,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                  {
+                    description: {
+                      contains: normalizedSearch,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                ],
               },
-              {
-                description: {
-                  contains: normalizedSearch,
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          }
-        : {}),
+            ]
+          : []),
+      ],
       ...(user?.sub
         ? {}
         : {
@@ -608,7 +643,17 @@ export class SurveyService {
   async getSurveyForView(surveyId: string) {
     return this.prisma.survey.findUnique({
       where: { id: surveyId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        visibility: true,
+        allowAnonymous: true,
+        allowMultipleResponses: true,
+        randomizeQuestions: true,
+        status: true,
+        startDate: true,
+        endDate: true,
         pages: {
           orderBy: { order: 'asc' },
           include: {
@@ -837,50 +882,52 @@ export class SurveyService {
     actorUserId: string,
     dto: CreateQuestionDtoRequest,
   ) {
-    const maxOrderQuestion = await this.prisma.question.findFirst({
-      where: { pageId },
-      orderBy: { order: 'desc' },
-      select: { order: true },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const page = await tx.surveyPage.findUnique({
+        where: { id: pageId },
+        select: { surveyId: true },
+      });
 
-    const order = (maxOrderQuestion?.order ?? 0) + 1;
+      if (!page) {
+        throw new NotFoundException('Page not found');
+      }
 
-    const question = await this.prisma.question.create({
-      data: {
-        pageId,
-        text: dto.title,
-        description: dto.description,
-        type: dto.type,
-        isRequired: dto.isRequired,
-        randomizeOptions: false,
-        order,
-        settings: (dto.settings ?? {}) as Prisma.InputJsonValue,
-        createdBy: actorUserId,
-      },
-    });
+      const maxOrderQuestion = await tx.question.findFirst({
+        where: { pageId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
 
-    const page = await this.prisma.surveyPage.findUnique({
-      where: { id: pageId },
-      select: { surveyId: true },
-    });
+      const order = (maxOrderQuestion?.order ?? 0) + 1;
 
-    if (!page) {
-      throw new NotFoundException('Page not found');
-    }
-
-    await this.prisma.survey.update({
-      where: { id: page.surveyId },
-      data: {
-        revision: {
-          increment: 1,
+      const question = await tx.question.create({
+        data: {
+          pageId,
+          text: dto.title,
+          description: dto.description,
+          type: dto.type,
+          isRequired: dto.isRequired,
+          randomizeOptions: false,
+          order,
+          settings: (dto.settings ?? {}) as Prisma.InputJsonValue,
+          createdBy: actorUserId,
         },
-      },
-    });
+      });
 
-    return {
-      id: question.id,
-      order: question.order,
-    };
+      await tx.survey.update({
+        where: { id: page.surveyId },
+        data: {
+          revision: {
+            increment: 1,
+          },
+        },
+      });
+
+      return {
+        id: question.id,
+        order: question.order,
+      };
+    });
   }
 
   async updateQuestion(questionId: string, dto: UpdateQuestionDtoRequest) {
@@ -1060,6 +1107,7 @@ export class SurveyService {
       const sourcePageQuestions = await tx.question.findMany({
         where: {
           pageId: question.pageId,
+          id: { not: question.id },
         },
         orderBy: {
           order: 'asc',
@@ -1089,6 +1137,15 @@ export class SurveyService {
   }
 
   async getQuestions(pageId: string): Promise<SurveyQuestionDtoResponse[]> {
+    const page = await this.prisma.surveyPage.findUnique({
+      where: { id: pageId },
+      select: { id: true },
+    });
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
     const questions = await this.prisma.question.findMany({
       where: { pageId },
       orderBy: { order: 'asc' },
@@ -1128,9 +1185,18 @@ export class SurveyService {
       return survey;
     }
 
+    const shuffle = <T>(items: T[]): T[] => {
+      const array = [...items];
+      for (let i = array.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+
     const shuffledPages = survey.pages.map((page) => ({
       ...page,
-      questions: [...page.questions].sort(() => Math.random() - 0.5),
+      questions: shuffle(page.questions),
     }));
 
     return {
@@ -1315,7 +1381,7 @@ export class SurveyService {
     const updated = await this.prisma.survey.updateMany({
       where: {
         id: surveyId,
-        status: SurveyStatus.DRAFT,
+        status: { in: [SurveyStatus.DRAFT, SurveyStatus.SCHEDULED] },
       },
       data: {
         status: SurveyStatus.PUBLISHED,
@@ -1381,28 +1447,32 @@ export class SurveyService {
   }
 
   private assertValidSchedule(
-    startsAt: Date | null,
-    endsAt: Date | null,
+    startDate: Date | null,
+    endDate: Date | null,
+    options: {
+      checkStartPast?: boolean;
+      checkEndPast?: boolean;
+    } = {},
   ): void {
     const now = new Date();
 
-    if (startsAt && Number.isNaN(startsAt.getTime())) {
+    if (startDate && Number.isNaN(startDate.getTime())) {
       throw new BadRequestException('Invalid start date');
     }
 
-    if (endsAt && Number.isNaN(endsAt.getTime())) {
+    if (endDate && Number.isNaN(endDate.getTime())) {
       throw new BadRequestException('Invalid end date');
     }
 
-    if (startsAt && startsAt < now) {
+    if (options.checkStartPast !== false && startDate && startDate < now) {
       throw new BadRequestException('Start date cannot be in the past');
     }
 
-    if (endsAt && endsAt < now) {
+    if (options.checkEndPast !== false && endDate && endDate < now) {
       throw new BadRequestException('End date cannot be in the past');
     }
 
-    if (startsAt && endsAt && endsAt < startsAt) {
+    if (startDate && endDate && endDate < startDate) {
       throw new BadRequestException('End date must be after start date');
     }
   }

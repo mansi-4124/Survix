@@ -95,24 +95,25 @@ export class SurveyAccessGuard implements CanActivate {
       if (!isPublishedForAccess) {
         throw new ForbiddenException('Survey is not published');
       }
-      if (survey.endDate && survey.endDate <= now && !resultsMode) {
+      if (survey.endDate && survey.endDate < now && !resultsMode) {
         throw new ForbiddenException('Survey has ended');
       }
 
       const tokenPayload =
-        await this.surveyAccessTokenService.validateToken(accessToken);
+        await this.surveyAccessTokenService.validateToken(
+          survey.id,
+          accessToken,
+        );
 
       if (!tokenPayload || tokenPayload.surveyId !== survey.id) {
         throw new ForbiddenException('Invalid survey access token');
       }
 
-      if (!currentUserId) {
-        throw new ForbiddenException(
-          'Private surveys do not allow anonymous access',
-        );
+      if (!currentUserId && !survey.allowAnonymous) {
+        throw new ForbiddenException('Authentication required for this survey');
       }
 
-      if (tokenPayload.userId !== currentUserId) {
+      if (currentUserId && tokenPayload.userId !== currentUserId) {
         throw new ForbiddenException('Survey token does not belong to this user');
       }
 
@@ -136,7 +137,7 @@ export class SurveyAccessGuard implements CanActivate {
       if (!isPublishedForAccess) {
         throw new ForbiddenException('Survey is not published');
       }
-      if (survey.endDate && survey.endDate <= now && !resultsMode) {
+      if (survey.endDate && survey.endDate < now && !resultsMode) {
         throw new ForbiddenException('Survey has ended');
       }
 
@@ -164,17 +165,19 @@ export class SurveyAccessGuard implements CanActivate {
       return params.surveyId;
     }
 
-    if (params.pageId) {
+    const pageId = params.pageId ?? params.surveyPageId;
+    if (pageId) {
       const page = await this.prisma.surveyPage.findUnique({
-        where: { id: params.pageId },
+        where: { id: pageId },
         select: { surveyId: true },
       });
       return page?.surveyId ?? null;
     }
 
-    if (params.questionId) {
+    const questionId = params.questionId ?? params.surveyQuestionId;
+    if (questionId) {
       const question = await this.prisma.question.findUnique({
-        where: { id: params.questionId },
+        where: { id: questionId },
         include: {
           page: {
             select: {
@@ -186,9 +189,10 @@ export class SurveyAccessGuard implements CanActivate {
       return question?.page.surveyId ?? null;
     }
 
-    if (params.responseId) {
+    const responseId = params.responseId ?? params.surveyResponseId;
+    if (responseId) {
       const response = await this.prisma.response.findUnique({
-        where: { id: params.responseId },
+        where: { id: responseId },
         select: { surveyId: true },
       });
       return response?.surveyId ?? null;

@@ -34,15 +34,20 @@ export class UpdateSurveyDtoRequest {
   @IsBoolean()
   allowAnonymous?: boolean;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  allowMultipleResponses?: boolean;
+
   @ApiProperty({ required: false, example: '2026-02-24T18:10:00.000Z' })
   @IsOptional()
   @IsDateString()
-  startsAt?: string;
+  startDate?: string;
 
   @ApiProperty({ required: false, example: '2026-03-01T18:10:00.000Z' })
   @IsOptional()
   @IsDateString()
-  endsAt?: string;
+  endDate?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

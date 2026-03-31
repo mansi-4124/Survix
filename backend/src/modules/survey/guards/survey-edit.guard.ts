@@ -18,7 +18,10 @@ export class SurveyEditGuard implements CanActivate {
       throw new ForbiddenException('Survey is not loaded');
     }
 
-    if (survey.status !== SurveyStatus.DRAFT) {
+    if (
+      survey.status !== SurveyStatus.DRAFT &&
+      survey.status !== SurveyStatus.SCHEDULED
+    ) {
       throw new ForbiddenException('Only draft surveys can be edited');
     }
 

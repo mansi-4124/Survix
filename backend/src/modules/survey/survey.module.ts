@@ -1,11 +1,12 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { SurveyController } from './survey.controller';
 import { SurveyAccessGuard } from './guards/survey-access.guard';
 import { SurveyEditGuard } from './guards/survey-edit.guard';
 import { QuestionSettingsValidationPipe } from './pipes/question-settings-validation.pipe';
-import { SurveyOwnershipValidationPipe } from './pipes/survey-ownership-validation.pipe';
+import { SurveyDateValidationPipe } from './pipes/survey-ownership-validation.pipe';
 import { SurveyAccessTokenService } from './services/survey-access-token.service';
 import { SurveyService } from './services/survey.service';
 import { SurveySchedulerService } from './services/survey-scheduler.service';
@@ -34,9 +35,12 @@ import { SURVEY_TOKENS } from './survey.tokens';
     },
     SurveyAccessGuard,
     SurveyEditGuard,
-    SurveyOwnershipValidationPipe,
+    SurveyDateValidationPipe,
     QuestionSettingsValidationPipe,
-    RevisionIncrementInterceptor,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RevisionIncrementInterceptor,
+    },
   ],
   exports: [
     SurveyAccessGuard,

@@ -27,8 +27,7 @@ export class SurveySchedulerService implements OnModuleInit {
     const now = new Date();
     const candidates = await this.prisma.survey.findMany({
       where: {
-        status: SurveyStatus.DRAFT,
-        publishedAt: { not: null },
+        status: SurveyStatus.SCHEDULED,
         OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
         AND: [{ OR: [{ startDate: null }, { startDate: { lte: now } }] }],
       },

@@ -35,7 +35,7 @@ import { SurveySummaryDtoResponse } from './dto/response/survey-summary.dto.resp
 import { SurveyAccessGuard } from './guards/survey-access.guard';
 import { SurveyEditGuard } from './guards/survey-edit.guard';
 import { QuestionSettingsValidationPipe } from './pipes/question-settings-validation.pipe';
-import { SurveyOwnershipValidationPipe } from './pipes/survey-ownership-validation.pipe';
+import { SurveyDateValidationPipe } from './pipes/survey-ownership-validation.pipe';
 import { SurveyService } from './services/survey.service';
 
 @ApiTags('Surveys')
@@ -47,7 +47,7 @@ export class SurveyController {
   @Post('surveys')
   @UseGuards(JwtAuthGuard, OrganizationMemberGuard)
   async createSurvey(
-    @Body(SurveyOwnershipValidationPipe) dto: CreateSurveyDtoRequest,
+    @Body(SurveyDateValidationPipe) dto: CreateSurveyDtoRequest,
     @CurrentUser() user: TokenPayload,
   ): Promise<CreateSurveyDtoResponse> {
     return this.surveyService.createSurvey(user.sub, dto);
