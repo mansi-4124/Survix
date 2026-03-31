@@ -76,12 +76,15 @@ export const AppLayout = () => {
 
   useEffect(() => {
     if (orgId) return;
+    if (location.pathname !== "/app") {
+      return;
+    }
     if (activeOrganizationId) {
       navigate(`/app/org/${activeOrganizationId}/dashboard`, { replace: true });
       return;
     }
     navigate("/app/onboarding", { replace: true });
-  }, [activeOrganizationId, navigate, orgId]);
+  }, [activeOrganizationId, location.pathname, navigate, orgId]);
 
   const handleLogout = () => {
     logout.mutate(undefined, {
