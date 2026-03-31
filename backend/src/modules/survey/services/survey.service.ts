@@ -28,6 +28,8 @@ import { UpdateSurveyDtoRequest } from '../dto/request/update-survey.dto.request
 import { SurveyQuestionDtoResponse } from '../dto/response/survey-question.dto.response';
 import { SurveyAccessTokenService } from './survey-access-token.service';
 
+const ScheduledStatus = 'SCHEDULED' as SurveyStatus;
+
 @Injectable()
 export class SurveyService {
   constructor(
@@ -97,7 +99,7 @@ export class SurveyService {
           startDate: startsAt,
           endDate: endsAt,
           deletedAt: null,
-        },
+        } as Prisma.SurveyCreateInput,
       });
 
       await tx.surveyPage.create({
@@ -215,7 +217,9 @@ export class SurveyService {
         visibility: membership.survey.visibility,
         allowAnonymous: membership.survey.allowAnonymous,
         randomizeQuestions: membership.survey.randomizeQuestions,
-        allowMultipleResponses: membership.survey.allowMultipleResponses,
+        allowMultipleResponses:
+          (membership.survey as { allowMultipleResponses?: boolean })
+            .allowMultipleResponses ?? false,
         organizationId: membership.survey.organizationId,
         startDate: membership.survey.startDate,
         endDate: membership.survey.endDate,
@@ -238,7 +242,9 @@ export class SurveyService {
         visibility: survey.visibility,
         allowAnonymous: survey.allowAnonymous,
         randomizeQuestions: survey.randomizeQuestions,
-        allowMultipleResponses: survey.allowMultipleResponses,
+        allowMultipleResponses:
+          (survey as { allowMultipleResponses?: boolean })
+            .allowMultipleResponses ?? false,
         organizationId: survey.organizationId,
         startDate: survey.startDate,
         endDate: survey.endDate,
@@ -306,7 +312,7 @@ export class SurveyService {
         startDate: dto.startDate !== undefined ? startsAt : undefined,
         endDate: dto.endDate !== undefined ? endsAt : undefined,
         revision: { increment: 1 },
-      },
+      } as Prisma.SurveyUpdateInput,
       select: { revision: true },
     });
 
@@ -356,13 +362,13 @@ export class SurveyService {
       await this.prisma.survey.update({
         where: { id: surveyId },
         data: {
-          status: SurveyStatus.SCHEDULED,
+          status: ScheduledStatus,
           publishedAt: null,
         },
       });
 
       return {
-        status: SurveyStatus.SCHEDULED,
+        status: ScheduledStatus,
       };
     }
 
@@ -377,7 +383,7 @@ export class SurveyService {
     const survey = await this.prisma.survey.findFirst({
       where: {
         id: surveyId,
-        status: SurveyStatus.SCHEDULED,
+        status: ScheduledStatus,
         OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       },
       include: {
@@ -662,7 +668,7 @@ export class SurveyService {
             },
           },
         },
-      },
+      } as Prisma.SurveySelect,
     });
   }
 
@@ -1381,7 +1387,7 @@ export class SurveyService {
     const updated = await this.prisma.survey.updateMany({
       where: {
         id: surveyId,
-        status: { in: [SurveyStatus.DRAFT, SurveyStatus.SCHEDULED] },
+        status: { in: [SurveyStatus.DRAFT, ScheduledStatus] },
       },
       data: {
         status: SurveyStatus.PUBLISHED,

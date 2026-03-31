@@ -8,6 +8,7 @@ import type { PollSummary } from "../../types";
 const basePoll: PollSummary = {
   id: "poll-1",
   code: "ABCD",
+  organizationId: "org-1",
   title: "Sprint Retro",
   description: "Share feedback",
   status: "LIVE",

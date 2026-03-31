@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { OrganizationRole, SurveyRole, SurveyStatus } from '@prisma/client';
 
+const ScheduledStatus = 'SCHEDULED' as SurveyStatus;
+
 @Injectable()
 export class SurveyEditGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -20,7 +22,7 @@ export class SurveyEditGuard implements CanActivate {
 
     if (
       survey.status !== SurveyStatus.DRAFT &&
-      survey.status !== SurveyStatus.SCHEDULED
+      survey.status !== ScheduledStatus
     ) {
       throw new ForbiddenException('Only draft surveys can be edited');
     }

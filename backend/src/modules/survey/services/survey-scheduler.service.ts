@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SurveyStatus } from '@prisma/client';
+
+const ScheduledStatus = 'SCHEDULED' as SurveyStatus;
 import { PrismaService } from 'prisma/prisma.service';
 import { SurveyService } from './survey.service';
 
@@ -27,7 +29,7 @@ export class SurveySchedulerService implements OnModuleInit {
     const now = new Date();
     const candidates = await this.prisma.survey.findMany({
       where: {
-        status: SurveyStatus.SCHEDULED,
+        status: ScheduledStatus,
         OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
         AND: [{ OR: [{ startDate: null }, { startDate: { lte: now } }] }],
       },
