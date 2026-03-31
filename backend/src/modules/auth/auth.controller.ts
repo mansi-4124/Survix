@@ -241,42 +241,28 @@ export class AuthController {
   */
   private setRefreshCookie(res: Response, token: string) {
     const isProd = process.env.NODE_ENV === 'production';
-    const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim();
     // Clear legacy path cookie to avoid stale token conflicts.
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
     res.cookie('refreshToken', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     });
   }
 
   private clearRefreshCookie(res: Response, isProd: boolean) {
-    const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim();
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
-    });
-
-    // Clear legacy cookie path, if it exists.
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
   }
 
