@@ -92,6 +92,7 @@ configureApiClient();
 
 let refreshPromise: Promise<boolean> | null = null;
 let refreshBlockedUntil: number | null = null;
+const REFRESH_BLOCK_KEY = "survix-refresh-blocked-until";
 
 const shouldSkipRefresh = (url?: string): boolean => {
   if (!url) return false;
@@ -108,6 +109,11 @@ const isRefreshBlocked = (): boolean => {
   if (refreshBlockedUntil == null) return false;
   if (Date.now() >= refreshBlockedUntil) {
     refreshBlockedUntil = null;
+    try {
+      localStorage.removeItem(REFRESH_BLOCK_KEY);
+    } catch {
+      // ignore storage errors
+    }
     return false;
   }
   return true;
@@ -128,4 +134,22 @@ const blockRefreshUntil = (retryAfter?: string) => {
   }
   if (blockMs <= 0) return;
   refreshBlockedUntil = Date.now() + blockMs;
+  try {
+    localStorage.setItem(REFRESH_BLOCK_KEY, String(refreshBlockedUntil));
+  } catch {
+    // ignore storage errors
+  }
 };
+
+// Restore shared cooldown across tabs/reloads.
+try {
+  const stored = localStorage.getItem(REFRESH_BLOCK_KEY);
+  const ts = stored ? Number(stored) : NaN;
+  if (!Number.isNaN(ts) && Number.isFinite(ts) && ts > Date.now()) {
+    refreshBlockedUntil = ts;
+  } else if (stored) {
+    localStorage.removeItem(REFRESH_BLOCK_KEY);
+  }
+} catch {
+  // ignore storage errors
+}
