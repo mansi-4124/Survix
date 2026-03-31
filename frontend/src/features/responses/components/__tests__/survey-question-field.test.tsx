@@ -85,6 +85,9 @@ describe("SurveyQuestionField", () => {
 
     const Wrapper = () => {
       const [value, setValue] = useState<string[]>([]);
+      const handleChange = (next: string | string[]) => {
+        setValue(Array.isArray(next) ? next : next ? [next] : []);
+      };
       return (
         <SurveyQuestionField
           question={{
@@ -94,7 +97,7 @@ describe("SurveyQuestionField", () => {
             settings: { options: ["A", "B", "C"] },
           }}
           value={value}
-          onChange={setValue}
+          onChange={handleChange}
         />
       );
     };

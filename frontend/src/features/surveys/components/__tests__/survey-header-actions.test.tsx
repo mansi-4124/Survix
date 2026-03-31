@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import type { ReactElement } from "react";
 import { SurveyHeaderActions } from "../survey-header-actions";
 
-const renderWithRoute = (ui: JSX.Element, path: string) =>
+const renderWithRoute = (ui: ReactElement, path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>

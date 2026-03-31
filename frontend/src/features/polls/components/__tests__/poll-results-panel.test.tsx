@@ -6,7 +6,7 @@ import type { PollQuestionResult } from "../../types";
 describe("PollResultsPanel", () => {
   it("renders MCQ option results with percentages", () => {
     const question: PollQuestionResult = {
-      id: "q1",
+      questionId: "q1",
       text: "What should we build?",
       type: "MCQ",
       totalVotes: 20,
@@ -31,7 +31,7 @@ describe("PollResultsPanel", () => {
 
   it("renders empty word cloud message", () => {
     const question: PollQuestionResult = {
-      id: "q1",
+      questionId: "q1",
       text: "One word",
       type: "ONE_WORD",
       totalVotes: 0,
@@ -46,7 +46,7 @@ describe("PollResultsPanel", () => {
 
   it("renders word cloud entries", () => {
     const question: PollQuestionResult = {
-      id: "q1",
+      questionId: "q1",
       text: "One word",
       type: "ONE_WORD",
       totalVotes: 3,

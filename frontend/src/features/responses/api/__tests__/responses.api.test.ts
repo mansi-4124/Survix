@@ -52,12 +52,11 @@ describe("responsesApi", () => {
 
     const result = await responsesApi.saveAnswers("resp-1", {
       answers: [],
-      completionRate: 10,
     });
 
     expect(ResponsesService.responseControllerSaveAnswers).toHaveBeenCalledWith(
       "resp-1",
-      { answers: [], completionRate: 10 },
+      { answers: [] },
     );
     expect(result).toBe("unwrapped");
   });

@@ -48,7 +48,11 @@ describe("useAuthInit", () => {
   it("sets auth and clears initializing on refresh success", async () => {
     vi.mocked(authApi.refresh).mockResolvedValue({
       user: baseUser,
-      tokens: { accessToken: "token-123" },
+      tokens: {
+        accessToken: "token-123",
+        accessTokenExpiresIn: 3600,
+        refreshTokenExpiresIn: 7200,
+      },
     });
 
     renderHook(() => useAuthInit());

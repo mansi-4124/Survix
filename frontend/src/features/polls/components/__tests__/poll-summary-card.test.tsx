@@ -10,7 +10,7 @@ const basePoll: PollSummary = {
   code: "ABCD",
   title: "Sprint Retro",
   description: "Share feedback",
-  status: "ACTIVE",
+  status: "LIVE",
   isActive: true,
   expiresAt: new Date("2025-01-02T10:00:00.000Z").toISOString(),
   totalVotes: 42,
