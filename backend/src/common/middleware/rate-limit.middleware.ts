@@ -29,7 +29,7 @@ export class RateLimitMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = getClientIp(req);
     const routeKey = `${req.baseUrl}${req.path}`;
     const key = `${this.options.keyPrefix}:${routeKey}:${ip}`;
 
@@ -64,3 +64,21 @@ export class RateLimitMiddleware implements NestMiddleware {
     next();
   }
 }
+
+const getClientIp = (req: Request): string => {
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+  if (typeof cfConnectingIp === 'string' && cfConnectingIp.trim()) {
+    return cfConnectingIp.trim();
+  }
+
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (typeof xForwardedFor === 'string' && xForwardedFor.trim()) {
+    return xForwardedFor.split(',')[0].trim();
+  }
+  if (Array.isArray(xForwardedFor) && xForwardedFor.length > 0) {
+    const first = xForwardedFor[0]?.trim();
+    if (first) return first;
+  }
+
+  return req.ip || req.socket.remoteAddress || 'unknown';
+};

@@ -9,6 +9,9 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', true);
+  }
   const requestTimeoutMs = Number(process.env.REQUEST_TIMEOUT_MS ?? 15000);
   const safeTimeoutMs =
     Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0
