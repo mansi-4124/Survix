@@ -118,14 +118,33 @@ export class AuthController {
 
     this.ensureSameOrigin(req);
 
-    const result = await this.authService.refresh(
-      refreshToken,
-      this.getSessionMetadata(req),
-    );
+    let result: AuthResponseDto;
+    let authResult: {
+      user: any;
+      tokens: {
+        accessToken: string;
+        refreshToken: string;
+        accessTokenExpiresIn: number;
+        refreshTokenExpiresIn: number;
+      };
+    };
+    try {
+      authResult = await this.authService.refresh(
+        refreshToken,
+        this.getSessionMetadata(req),
+      );
+      result = this.mapAuthResultToDto(authResult);
+    } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof UnauthorizedException) {
+        const isProd = process.env.NODE_ENV === 'production';
+        this.clearRefreshCookie(res, isProd);
+      }
+      throw error;
+    }
 
-    this.setRefreshCookie(res, result.tokens.refreshToken);
+    this.setRefreshCookie(res, authResult.tokens.refreshToken);
 
-    return this.mapAuthResultToDto(result);
+    return result;
   }
 
   /*
@@ -217,6 +236,14 @@ export class AuthController {
   private setRefreshCookie(res: Response, token: string) {
     const isProd = process.env.NODE_ENV === 'production';
     const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim();
+    // Clear legacy path cookie to avoid stale token conflicts.
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    });
     res.cookie('refreshToken', token, {
       httpOnly: true,
       secure: isProd,
