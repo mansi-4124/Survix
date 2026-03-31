@@ -112,6 +112,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.refreshToken;
+    if (process.env.DEBUG_REFRESH_LOG === 'true') {
+      const origin = req.headers.origin;
+      const referer = req.headers.referer;
+      const rawCookie = req.headers.cookie ?? '';
+      console.log('[auth.refresh] cookiePresent=%s cookieLen=%d origin=%s referer=%s', Boolean(refreshToken), rawCookie.length, origin, referer);
+    }
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token missing');
     }
@@ -248,7 +254,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
-      path: '/auth',
+      path: '/',
       ...(cookieDomain ? { domain: cookieDomain } : {}),
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     });
@@ -260,7 +266,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
-      path: '/auth',
+      path: '/',
       ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
 

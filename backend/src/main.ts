@@ -24,7 +24,7 @@ async function bootstrap() {
   const frontendUrls = process.env.FRONTEND_URLS;
   [frontendUrl, frontendUrls]
     .filter(Boolean)
-    .flatMap((value) => String(value).split(","))
+    .flatMap((value) => String(value).split(','))
     .map((value) => value.trim())
     .filter(Boolean)
     .forEach((value) => allowlist.add(value));
@@ -46,7 +46,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.use(cookieParser.default());
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
