@@ -57,4 +57,8 @@ export class OtpService {
     await this.redis.del(`${this.getOtpKey(email)}`);
     return true;
   }
+
+  async invalidateOtp(email: string): Promise<void> {
+    await this.redis.del(this.getOtpKey(email));
+  }
 }

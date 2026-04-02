@@ -6,6 +6,7 @@ import type { AuthResponseDto } from '../models/AuthResponseDto';
 import type { ForgotPasswordDto } from '../models/ForgotPasswordDto';
 import type { GoogleLoginDto } from '../models/GoogleLoginDto';
 import type { LoginDto } from '../models/LoginDto';
+import type { ResendOtpDto } from '../models/ResendOtpDto';
 import type { ResetPasswordDto } from '../models/ResetPasswordDto';
 import type { SignupDto } from '../models/SignupDto';
 import type { VerifyEmailDto } from '../models/VerifyEmailDto';
@@ -127,6 +128,22 @@ export class AuthenticationService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/auth/google',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Resend verification OTP
+     * @param requestBody
+     * @returns any OTP resent if account exists
+     * @throws ApiError
+     */
+    public static authControllerResendOtp(
+        requestBody: ResendOtpDto,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/auth/resend-otp',
             body: requestBody,
             mediaType: 'application/json',
         });

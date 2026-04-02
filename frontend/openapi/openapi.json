@@ -221,6 +221,31 @@
         ]
       }
     },
+    "/auth/resend-otp": {
+      "post": {
+        "operationId": "AuthController_resendOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP resent if account exists"
+          }
+        },
+        "summary": "Resend verification OTP",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/users/public/{username}": {
       "get": {
         "operationId": "UserController_getPublicProfile",
@@ -1197,7 +1222,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": ""
           }
         },
@@ -2131,11 +2156,6 @@
             "description": ""
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "Global search across public surveys, polls, organizations, and users",
         "tags": [
           "Search"
@@ -2177,7 +2197,7 @@
             "type": "string",
             "description": "User password",
             "minLength": 8,
-            "maxLength": 64,
+            "maxLength": 20,
             "example": "StrongPassword123!"
           }
         },
@@ -2322,7 +2342,7 @@
             "type": "string",
             "description": "User password",
             "minLength": 8,
-            "maxLength": 64,
+            "maxLength": 20,
             "example": "StrongPassword123!"
           }
         },
@@ -2343,6 +2363,10 @@
         "required": [
           "googleToken"
         ]
+      },
+      "ResendOtpDto": {
+        "type": "object",
+        "properties": {}
       },
       "PublicUserProfileDtoResponse": {
         "type": "object",
@@ -2379,11 +2403,11 @@
             "type": "boolean",
             "example": false
           },
-          "startsAt": {
+          "startDate": {
             "type": "string",
             "example": "2026-02-24T18:10:00.000Z"
           },
-          "endsAt": {
+          "endDate": {
             "type": "string",
             "example": "2026-03-01T18:10:00.000Z"
           },
@@ -2418,11 +2442,14 @@
           "allowAnonymous": {
             "type": "boolean"
           },
-          "startsAt": {
+          "allowMultipleResponses": {
+            "type": "boolean"
+          },
+          "startDate": {
             "type": "string",
             "example": "2026-02-24T18:10:00.000Z"
           },
-          "endsAt": {
+          "endDate": {
             "type": "string",
             "example": "2026-03-01T18:10:00.000Z"
           },

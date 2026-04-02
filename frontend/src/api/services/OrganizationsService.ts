@@ -114,12 +114,12 @@ export class OrganizationsService {
     /**
      * Soft delete organization
      * @param orgId
-     * @returns any
+     * @returns void
      * @throws ApiError
      */
     public static organizationControllerSoftDeleteOrganization(
         orgId: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/organizations/{orgId}',

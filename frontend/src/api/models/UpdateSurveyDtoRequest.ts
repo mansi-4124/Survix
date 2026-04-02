@@ -7,8 +7,9 @@ export type UpdateSurveyDtoRequest = {
     description?: string;
     visibility?: UpdateSurveyDtoRequest.visibility;
     allowAnonymous?: boolean;
-    startsAt?: string;
-    endsAt?: string;
+    allowMultipleResponses?: boolean;
+    startDate?: string;
+    endDate?: string;
     randomizeQuestions?: boolean;
 };
 export namespace UpdateSurveyDtoRequest {

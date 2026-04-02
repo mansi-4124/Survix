@@ -32,6 +32,7 @@ export type { OrganizationUserSearchDtoResponse } from './models/OrganizationUse
 export type { PublicOrganizationDtoResponse } from './models/PublicOrganizationDtoResponse';
 export type { PublicUserProfileDtoResponse } from './models/PublicUserProfileDtoResponse';
 export type { ReorderQuestionsDtoRequest } from './models/ReorderQuestionsDtoRequest';
+export type { ResendOtpDto } from './models/ResendOtpDto';
 export type { ResetPasswordDto } from './models/ResetPasswordDto';
 export type { SaveAnswersDtoRequest } from './models/SaveAnswersDtoRequest';
 export type { SignupDto } from './models/SignupDto';

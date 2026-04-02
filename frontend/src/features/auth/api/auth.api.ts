@@ -3,6 +3,7 @@ import type {
   ForgotPasswordDto,
   GoogleLoginDto,
   LoginDto,
+  ResendOtpDto,
   ResetPasswordDto,
   SignupDto,
   VerifyEmailDto,
@@ -47,5 +48,10 @@ export const authApi = {
   googleAuth: async (data: GoogleLoginDto) =>
     unwrapApiResponse<AuthResponseDto>(
       await AuthenticationService.authControllerGoogleLoginOrSignup(data),
+    ),
+
+  resendOtp: async (data: ResendOtpDto) =>
+    unwrapApiResponse<{ message: string }>(
+      await AuthenticationService.authControllerResendOtp(data),
     ),
 };

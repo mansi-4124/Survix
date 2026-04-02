@@ -13,6 +13,7 @@ import {
   AuthSubmitButton,
   OtpField,
 } from "@/features/auth/components";
+import { useResendOtp } from "@/features/auth/hooks/useResendOtp";
 
 type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
 
@@ -21,7 +22,7 @@ const VerifyEmailPage = () => {
   const navigate = useNavigate();
   const email = params.get("email") || "";
   const verifyEmail = useVerifyEmail();
-
+  const resendOtp = useResendOtp();
   const {
     handleSubmit,
     control,
@@ -48,6 +49,21 @@ const VerifyEmailPage = () => {
       },
     );
   };
+
+  const handleResend = () => {
+    resendOtp.mutate(
+      { email },
+      {
+        onSuccess: () => {
+          toast.success("Otp resent successfully.");
+        },
+        onError: () => {
+          toast.error("Failed to resend OTP. Please try again.");
+        },
+      },
+    );
+  };
+
   return (
     <AuthLayout>
       <AuthCard>
@@ -65,13 +81,18 @@ const VerifyEmailPage = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <OtpField control={control} error={errors.otp} />
-          <AuthSubmitButton text="Verify & Continue" disabled={otp.length < 6} />
+          <AuthSubmitButton
+            text="Verify & Continue"
+            disabled={otp.length < 6}
+          />
           <div className="text-center">
+            Didn't receive code?
             <button
+              onClick={handleResend}
               type="button"
               className="text-sm text-indigo-600 hover:text-indigo-700"
             >
-              Didn't receive code? Resend
+              Resend
             </button>
           </div>
         </form>
