@@ -56,8 +56,12 @@ export const AppLayout = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { user, hasHydrated } = useAuthStore();
-  const { organizations, activeOrganizationId, setActiveOrganizationId } =
-    useActiveOrganization();
+  const {
+    organizations,
+    activeOrganizationId,
+    setActiveOrganizationId,
+    isLoading: organizationsLoading,
+  } = useActiveOrganization();
   const resolvedOrgId = orgId ?? activeOrganizationId ?? undefined;
   const { data: organizationDetails } = useOrganizationDetails(resolvedOrgId);
   const isPersonalAccount =
@@ -83,6 +87,7 @@ export const AppLayout = () => {
   useEffect(() => {
     if (orgId) return;
     if (location.pathname !== "/app") return;
+    if (organizationsLoading) return;
     if (!organizations) return;
     if (activeOrganizationId) {
       navigate(`/app/org/${activeOrganizationId}/dashboard`, { replace: true });
@@ -93,7 +98,14 @@ export const AppLayout = () => {
       return;
     }
     navigate("/app/onboarding", { replace: true });
-  }, [activeOrganizationId, location.pathname, navigate, orgId]);
+  }, [
+    activeOrganizationId,
+    location.pathname,
+    navigate,
+    orgId,
+    organizationsLoading,
+    organizations,
+  ]);
 
   const handleLogout = () => {
     logout.mutate(undefined, {

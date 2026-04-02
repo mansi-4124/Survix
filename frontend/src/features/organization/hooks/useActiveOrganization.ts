@@ -3,12 +3,14 @@ import { useMyOrganizations } from "./useMyOrganizations";
 import { useOrganizationStore } from "../store/organization.store";
 
 export const useActiveOrganization = () => {
-  const { data: organizations } = useMyOrganizations();
+  const { data: organizations, isLoading } = useMyOrganizations();
   const storedOrganizations = useOrganizationStore((s) => s.organizations);
   const activeOrganizationId = useOrganizationStore(
     (s) => s.activeOrganizationId,
   );
-  const currentOrganization = useOrganizationStore((s) => s.currentOrganization);
+  const currentOrganization = useOrganizationStore(
+    (s) => s.currentOrganization,
+  );
   const setOrganizations = useOrganizationStore((s) => s.setOrganizations);
   const setActiveOrganizationId = useOrganizationStore(
     (s) => s.setActiveOrganizationId,
@@ -32,5 +34,6 @@ export const useActiveOrganization = () => {
     activeOrganizationId,
     currentOrganization,
     setActiveOrganizationId,
+    isLoading,
   };
 };
