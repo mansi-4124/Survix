@@ -69,6 +69,12 @@ export const AppLayout = () => {
   }
 
   useEffect(() => {
+    if (!activeOrganizationId && organizations?.length) {
+      setActiveOrganizationId(organizations[0].id);
+    }
+  }, [organizations, activeOrganizationId, setActiveOrganizationId]);
+
+  useEffect(() => {
     if (orgId) {
       setActiveOrganizationIdFromStore(orgId);
     }
@@ -76,11 +82,14 @@ export const AppLayout = () => {
 
   useEffect(() => {
     if (orgId) return;
-    if (location.pathname !== "/app") {
-      return;
-    }
+    if (location.pathname !== "/app") return;
+    if (!organizations) return;
     if (activeOrganizationId) {
       navigate(`/app/org/${activeOrganizationId}/dashboard`, { replace: true });
+      return;
+    }
+    if (organizations.length > 0) {
+      navigate(`/app/org/${organizations[0].id}/dashboard`, { replace: true });
       return;
     }
     navigate("/app/onboarding", { replace: true });

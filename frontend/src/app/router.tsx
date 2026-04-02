@@ -6,6 +6,7 @@ import { AppLayout } from "@/layouts/appLayout";
 import { RequireAuth } from "@/app/require-auth";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { useOrganizationStore } from "@/features/organization/store/organization.store";
+import { useMyOrganizations } from "@/features/organization/hooks";
 
 const LoginPage = lazy(() => import("@/pages/auth/loginPage"));
 const SignupPage = lazy(() => import("@/pages/auth/signupPage"));
@@ -30,9 +31,7 @@ const PublicProfilePage = lazy(
 );
 
 const SurveysPage = lazy(() => import("@/pages/surveys/surveysPage"));
-const SurveyCreatePage = lazy(
-  () => import("@/pages/surveys/surveyCreatePage"),
-);
+const SurveyCreatePage = lazy(() => import("@/pages/surveys/surveyCreatePage"));
 const SurveyPage = lazy(() => import("@/pages/surveys/surveyPage"));
 const SurveyMembersPage = lazy(
   () => import("@/pages/surveys/surveyMembersPage"),
@@ -64,11 +63,7 @@ const PublicOrganizationPage = lazy(
 );
 
 const withSuspense = (element: ReactElement) => (
-  <Suspense
-    fallback={<PageLoader fullScreen message="" />}
-  >
-    {element}
-  </Suspense>
+  <Suspense fallback={<PageLoader fullScreen message="" />}>{element}</Suspense>
 );
 
 const RootIndex = () => {
@@ -83,12 +78,18 @@ const AppIndexRedirect = () => {
   const activeOrganizationId = useOrganizationStore(
     (s) => s.activeOrganizationId,
   );
+  const { data: organizations, isLoading } = useMyOrganizations();
+  if (isLoading) {
+    return <PageLoader fullScreen message="" />;
+  }
   if (activeOrganizationId) {
     return (
-      <Navigate
-        to={`/app/org/${activeOrganizationId}/dashboard`}
-        replace
-      />
+      <Navigate to={`/app/org/${activeOrganizationId}/dashboard`} replace />
+    );
+  }
+  if (organizations?.length) {
+    return (
+      <Navigate to={`/app/org/${organizations[0].id}/dashboard`} replace />
     );
   }
   return <Navigate to="/app/onboarding" replace />;
@@ -100,10 +101,7 @@ const OrganizationRedirect = () => {
   );
   if (activeOrganizationId) {
     return (
-      <Navigate
-        to={`/app/org/${activeOrganizationId}/organization`}
-        replace
-      />
+      <Navigate to={`/app/org/${activeOrganizationId}/organization`} replace />
     );
   }
   return <Navigate to="/app/onboarding" replace />;
@@ -111,9 +109,9 @@ const OrganizationRedirect = () => {
 
 export const router = createBrowserRouter([
   {
-      path: "/",
-      element: <App />,
-      children: [
+    path: "/",
+    element: <App />,
+    children: [
       { index: true, element: <RootIndex /> },
       { path: "signup", element: withSuspense(<SignupPage />) },
       { path: "verify-email", element: withSuspense(<VerifyEmailPage />) },
@@ -164,7 +162,10 @@ export const router = createBrowserRouter([
             path: "org/:orgId/organization/edit",
             element: withSuspense(<OrganizationEditPage />),
           },
-          { path: "org/:orgId/surveys", element: withSuspense(<SurveysPage />) },
+          {
+            path: "org/:orgId/surveys",
+            element: withSuspense(<SurveysPage />),
+          },
           {
             path: "org/:orgId/surveys/create",
             element: withSuspense(<SurveyCreatePage />),
