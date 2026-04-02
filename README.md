@@ -2,7 +2,7 @@
 
 Modern survey and live polling platform with real-time analytics, team workspaces, and secure authentication.
 
-**Live:** https://survix.pages.dev (update if different)
+**Live:** https://survix.pages.dev
 
 **Key Features**
 
