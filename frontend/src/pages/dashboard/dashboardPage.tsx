@@ -210,12 +210,12 @@ const DashboardPage = () => {
 
   return (
     <PageReveal asChild>
-      <div className="p-6 space-y-5">
+      <div className="p-4 sm:p-6 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 text-white p-6"
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 text-white p-4 sm:p-6"
         >
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.7),_transparent_60%)]" />
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -224,7 +224,7 @@ const DashboardPage = () => {
                 <Sparkles className="w-4 h-4" />
                 Survix Intelligence Hub
               </div>
-              <h1 className="text-3xl font-semibold">
+              <h1 className="text-2xl sm:text-3xl font-semibold">
                 Welcome back, {greetingName}.
               </h1>
               <p className="text-white/80">
@@ -253,7 +253,7 @@ const DashboardPage = () => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          className="grid gap-3 sm:gap-4 grid-cols-2 xl:grid-cols-4"
         >
           <Card className="p-5 border-slate-200">
             <div className="flex items-center justify-between">
@@ -299,7 +299,7 @@ const DashboardPage = () => {
           </Card>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr] items-start">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[2fr_1fr] items-start">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -547,7 +547,7 @@ const DashboardPage = () => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="space-y-4 -mt-1"
+          className="space-y-4"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -580,11 +580,9 @@ const DashboardPage = () => {
             isError={publicError}
           />
         </motion.div>
-
       </div>
     </PageReveal>
   );
 };
 
 export default DashboardPage;
-

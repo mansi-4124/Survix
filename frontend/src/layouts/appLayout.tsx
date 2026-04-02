@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { useActiveOrganization } from "@/features/organization/hooks/useActiveOrganization";
@@ -40,6 +39,7 @@ import { toast } from "@/lib/toast";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useEffect, useRef, useState } from "react";
 import { PageLoader } from "@/components/common/page-loader";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export const AppLayout = () => {
   const navigate = useNavigate();
@@ -200,8 +200,8 @@ export const AppLayout = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="h-16 border-b bg-white/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-6">
             <Button
               variant="ghost"
               size="sm"
@@ -276,7 +276,7 @@ export const AppLayout = () => {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
+            <div className="hidden lg:flex items-center gap-2 text-sm text-slate-600">
               <Building2 className="w-4 h-4" />
               <Select
                 value={activeOrganizationId ?? ""}
@@ -298,9 +298,13 @@ export const AppLayout = () => {
               </Select>
             </div>
             <Link to="/app/organization/create">
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden sm:inline-flex"
+              >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Organization
+                Create
               </Button>
             </Link>
             <Button
@@ -322,14 +326,19 @@ export const AppLayout = () => {
             >
               <Search className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="hidden sm:inline-flex"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               {user?.email ?? "Logout"}
             </Button>
             <Link to="/app/profile" className="flex items-center">
               <button
                 type="button"
-                className="h-9 w-9 rounded-full border border-slate-200 bg-white flex items-center justify-center overflow-hidden"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-slate-200 bg-white flex items-center justify-center overflow-hidden"
                 aria-label="Open profile"
               >
                 {user?.avatar ? (
@@ -386,9 +395,13 @@ export const AppLayout = () => {
           </div>
         </div>
       )}
-      <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-        <DialogContent className="fixed right-0 top-0 h-full w-80 max-w-[90vw] translate-x-0 translate-y-0 rounded-none p-6">
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent
+          side="right"
+          className="w-[85%] sm:w-80 p-6 overflow-y-auto"
+        >
           <div className="space-y-6">
+            {/* Workspace selector */}
             <div>
               <p className="text-xs uppercase text-slate-500">Workspace</p>
               <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
@@ -415,14 +428,14 @@ export const AppLayout = () => {
               </div>
             </div>
 
-            <nav className="space-y-2 text-sm">
+            <nav className="space-y-1 text-sm">
               <Link
                 to={
                   activeOrganizationId
                     ? `/app/org/${activeOrganizationId}/dashboard`
                     : "/app/onboarding"
                 }
-                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 <Home className="w-4 h-4 text-slate-500" />
@@ -434,7 +447,7 @@ export const AppLayout = () => {
                     ? `/app/org/${activeOrganizationId}/surveys`
                     : "/app/onboarding"
                 }
-                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 <ClipboardCheck className="w-4 h-4 text-slate-500" />
@@ -446,7 +459,7 @@ export const AppLayout = () => {
                     ? `/app/org/${activeOrganizationId}/polls`
                     : "/app/onboarding"
                 }
-                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 <Radio className="w-4 h-4 text-slate-500" />
@@ -460,7 +473,7 @@ export const AppLayout = () => {
                       ? `/app/org/${activeOrganizationId}/organization`
                       : "/app/onboarding"
                 }
-                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 <UserRound className="w-4 h-4 text-slate-500" />
@@ -474,7 +487,7 @@ export const AppLayout = () => {
                       ? `/app/org/${activeOrganizationId}/organization`
                       : "/app/onboarding"
                 }
-                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
                 <Settings className="w-4 h-4 text-slate-500" />
@@ -502,8 +515,8 @@ export const AppLayout = () => {
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
       <main className="min-h-[calc(100vh-4rem)]">
         <Outlet />
       </main>
