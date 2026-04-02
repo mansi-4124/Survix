@@ -43,8 +43,8 @@ const SurveyCreatePage = () => {
       allowAnonymous: false,
       allowMultipleResponses: false,
       randomizeQuestions: false,
-      startsAt: "",
-      endsAt: "",
+      startDate: "",
+      endDate: "",
     },
   });
 
@@ -64,8 +64,8 @@ const SurveyCreatePage = () => {
       allowAnonymous: values.allowAnonymous,
       allowMultipleResponses: values.allowMultipleResponses,
       randomizeQuestions: values.randomizeQuestions,
-      startsAt: values.startsAt || undefined,
-      endsAt: values.endsAt || undefined,
+      startDate: values.startDate || undefined,
+      endDate: values.endDate || undefined,
     };
 
     try {
@@ -81,7 +81,7 @@ const SurveyCreatePage = () => {
   };
 
   const minDateTime = nowLocalDateTimeValue();
-  const startsAt = form.watch("startsAt");
+  const startDate = form.watch("startDate");
 
   return (
     <PageReveal asChild>
@@ -152,7 +152,7 @@ const SurveyCreatePage = () => {
                 <Label htmlFor="survey-start">Starts At</Label>
                 <Controller
                   control={form.control}
-                  name="startsAt"
+                  name="startDate"
                   render={({ field }) => (
                     <DateTimeField
                       id="survey-start"
@@ -169,12 +169,12 @@ const SurveyCreatePage = () => {
                 <Label htmlFor="survey-end">Ends At</Label>
                 <Controller
                   control={form.control}
-                  name="endsAt"
+                  name="endDate"
                   render={({ field }) => (
                     <DateTimeField
                       id="survey-end"
                       value={field.value}
-                      min={startsAt || minDateTime}
+                      min={startDate || minDateTime}
                       placeholder="YYYY-MM-DD HH:MM"
                       onChange={field.onChange}
                     />

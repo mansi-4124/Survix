@@ -26,6 +26,7 @@ import { ResetPasswordDto } from './dto/request/reset-password.dto.request';
 import { GoogleLoginDto } from './dto/request/google-login.dto.request';
 import { AuthResponseDto } from './dto/response/auth-response.dto.response';
 import { Public } from './decorators/public.decorator';
+import { ResendOtpDto } from './dto/request/resend-otp.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -116,7 +117,13 @@ export class AuthController {
       const origin = req.headers.origin;
       const referer = req.headers.referer;
       const rawCookie = req.headers.cookie ?? '';
-      console.log('[auth.refresh] cookiePresent=%s cookieLen=%d origin=%s referer=%s', Boolean(refreshToken), rawCookie.length, origin, referer);
+      console.log(
+        '[auth.refresh] cookiePresent=%s cookieLen=%d origin=%s referer=%s',
+        Boolean(refreshToken),
+        rawCookie.length,
+        origin,
+        referer,
+      );
     }
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token missing');
@@ -141,7 +148,10 @@ export class AuthController {
       );
       result = this.mapAuthResultToDto(authResult);
     } catch (error) {
-      if (error instanceof ForbiddenException || error instanceof UnauthorizedException) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof UnauthorizedException
+      ) {
         const isProd = process.env.NODE_ENV === 'production';
         this.clearRefreshCookie(res, isProd);
       }
@@ -232,6 +242,21 @@ export class AuthController {
     this.setRefreshCookie(res, result.tokens.refreshToken);
 
     return this.mapAuthResultToDto(result);
+  }
+
+  /*
+=====================================================
+RESEND EMAIL OTP
+=====================================================
+*/
+  @Public()
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend verification OTP' })
+  @ApiResponse({ status: 200, description: 'OTP resent if account exists' })
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    await this.authService.resendOtp(dto.email);
+    return { message: 'If account exists, OTP resent' };
   }
 
   /*

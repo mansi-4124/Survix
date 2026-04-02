@@ -9,8 +9,8 @@ export type CreateSurveyDtoRequest = {
     visibility: CreateSurveyDtoRequest.visibility;
     allowAnonymous: boolean;
     allowMultipleResponses: boolean;
-    startsAt?: string;
-    endsAt?: string;
+    startDate?: string;
+    endDate?: string;
     randomizeQuestions?: boolean;
 };
 export namespace CreateSurveyDtoRequest {

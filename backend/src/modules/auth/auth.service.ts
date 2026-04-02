@@ -254,7 +254,11 @@ export class AuthService {
 
     const rawToken = randomUUID();
     await this.passwordResetService.storeResetToken(user.id, rawToken);
-    await this.emailService.sendPasswordReset(normalizedEmail, user.id, rawToken);
+    await this.emailService.sendPasswordReset(
+      normalizedEmail,
+      user.id,
+      rawToken,
+    );
   }
 
   /*
@@ -315,6 +319,42 @@ export class AuthService {
     }
 
     return this.createSessionAndTokens(user, metadata);
+  }
+
+  /*
+=====================================================
+RESEND OTP
+- invalidate previous OTP
+- generate new OTP
+- send email
+=====================================================
+*/
+  async resendOtp(email: string): Promise<void> {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await this.userRepository.findByEmail(normalizedEmail);
+
+    if (!user) {
+      // Prevent account enumeration
+      return;
+    }
+
+    if (
+      (user.status === AccountStatus.ACTIVE && user.emailVerified) ||
+      user.status === AccountStatus.SUSPENDED ||
+      user.status === AccountStatus.LOCKED
+    ) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // invalidate existing OTP
+    await this.otpService.invalidateOtp(normalizedEmail);
+
+    // generate new OTP
+    const otp = await this.otpService.generateOtp(normalizedEmail);
+
+    // send email
+    await this.emailService.sendOtp(normalizedEmail, otp);
   }
 
   /*
