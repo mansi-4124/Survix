@@ -486,8 +486,8 @@ const SurveyPage = () => {
         description: values.description,
         visibility: values.visibility,
         allowAnonymous: values.allowAnonymous,
-        startsAt: startsAtDate ? startsAtDate.toISOString() : undefined,
-        endsAt: endsAtDate ? endsAtDate.toISOString() : undefined,
+        startDate: startsAtDate ? startsAtDate.toISOString() : undefined,
+        endDate: endsAtDate ? endsAtDate.toISOString() : undefined,
       },
     });
   });
