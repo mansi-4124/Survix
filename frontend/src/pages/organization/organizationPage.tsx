@@ -57,7 +57,9 @@ const OrganizationPage = () => {
   const organization = organizationDetails?.organization;
   const membersList = members ?? [];
   const totalMembers = membersList.length;
-  const activeMembers = membersList.filter((member) => member.status === "ACTIVE").length;
+  const activeMembers = membersList.filter(
+    (member) => member.status === "ACTIVE",
+  ).length;
 
   useEffect(() => {
     if (orgId) {
@@ -211,7 +213,7 @@ const OrganizationPage = () => {
 
   return (
     <PageReveal asChild>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
