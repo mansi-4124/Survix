@@ -24,7 +24,10 @@ import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { asDisplayString, asString } from "@/lib/normalize";
 import { useSearchOrganizationUsers } from "@/features/organization/hooks/useSearchOrganizationUsers";
 import { InviteMemberDtoRequest } from "@/api";
-import type { ChangeMemberRoleDtoRequest, OrganizationMemberDtoResponse } from "@/api";
+import type {
+  ChangeMemberRoleDtoRequest,
+  OrganizationMemberDtoResponse,
+} from "@/api";
 import { OrganizationMemberRow } from "./organization-member-row";
 
 type InviteFormValues = {
@@ -39,7 +42,10 @@ type OrganizationMembersSectionProps = {
   allowInvite: boolean;
   allowManageMembers: boolean;
   isInvitePending: boolean;
-  onInvite: (payload: { email: string; role: InviteMemberDtoRequest.role }) => Promise<boolean>;
+  onInvite: (payload: {
+    email: string;
+    role: InviteMemberDtoRequest.role;
+  }) => Promise<boolean>;
   onChangeRole: (userId: string, role: ChangeMemberRoleDtoRequest.role) => void;
   onSuspend: (userId: string) => void;
   onReactivate: (userId: string) => void;
@@ -118,21 +124,21 @@ export const OrganizationMembersSection = ({
 
   return (
     <Card className="border-slate-200">
-      <div className="p-6 border-b border-slate-200 flex items-center justify-between gap-4 flex-wrap">
+      <div className="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 className="text-lg font-bold">Team Members</h3>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Input
             placeholder="Search members..."
-            className="w-64"
+            className="flex-1 sm:w-56"
             value={memberSearch}
             onChange={(event) => setMemberSearch(event.target.value)}
           />
           {allowInvite ? (
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite Member
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 shrink-0">
+                  <UserPlus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Invite Member</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
