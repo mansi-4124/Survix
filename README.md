@@ -66,7 +66,6 @@ npm run test
 - Team audit logs and SSO for enterprise workspaces.
 - Template library and theming for brand kits.
 
-**Contributing**
 Contributions are welcome. Please open an issue to discuss changes or improvements, then submit a PR with a clear description of the update.
 
 **Author**
