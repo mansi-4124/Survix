@@ -10,7 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { asDisplayString } from "@/lib/normalize";
-import type { ChangeMemberRoleDtoRequest, OrganizationMemberDtoResponse } from "@/api";
+import type {
+  ChangeMemberRoleDtoRequest,
+  OrganizationMemberDtoResponse,
+} from "@/api";
 
 const statusLabel = {
   INVITED: "Pending",
@@ -38,8 +41,8 @@ export const OrganizationMemberRow = React.memo(
     onRemove,
   }: OrganizationMemberRowProps) => {
     return (
-      <div className="p-6 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="p-4 sm:p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
           {member.user?.avatar ? (
             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100">
               <img
@@ -69,21 +72,21 @@ export const OrganizationMemberRow = React.memo(
             </div>
           )}
 
-          <div>
-            <div className="font-medium mb-1">
+          <div className="min-w-0">
+            <div className="font-medium mb-1 truncate">
               {asDisplayString(
                 member.user?.username,
                 asDisplayString(member.user?.email, member.userId),
               )}
             </div>
-            <div className="text-sm text-slate-600 flex items-center gap-2">
+            <div className="text-sm text-slate-600 flex items-center gap-2 truncate">
               <Mail className="w-4 h-4" />
               {asDisplayString(member.user?.email, member.userId)}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap pl-[60px] sm:pl-0">
           <Badge
             variant="secondary"
             className={
