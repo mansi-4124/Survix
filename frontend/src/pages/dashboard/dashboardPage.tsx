@@ -260,42 +260,81 @@ const DashboardPage = () => {
               <p className="text-sm text-slate-600">Total Surveys</p>
               <ClipboardCheck className="w-5 h-5 text-indigo-600" />
             </div>
-            <p className="text-3xl font-semibold mt-2">{totalSurveys}</p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-              <span>{publishedSurveys} published</span>
-              <Dot className="w-3 h-3 text-slate-400" />
-              <span>{draftSurveys} drafts</span>
-            </p>
+            {surveysLoading ? (
+              <>
+                <div className="h-9 w-16 bg-slate-100 animate-pulse rounded mt-2" />
+                <div className="h-3 w-32 bg-slate-100 animate-pulse rounded mt-2" />
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-semibold mt-2">{totalSurveys}</p>
+                <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                  <span>{publishedSurveys} published</span>
+                  <Dot className="w-3 h-3 text-slate-400" />
+                  <span>{draftSurveys} drafts</span>
+                </p>
+              </>
+            )}
           </Card>
+
           <Card className="p-5 border-slate-200">
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-600">Closed Surveys</p>
               <Timer className="w-5 h-5 text-rose-500" />
             </div>
-            <p className="text-3xl font-semibold mt-2">{closedSurveys}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Active window tracking
-            </p>
+            {surveysLoading ? (
+              <>
+                <div className="h-9 w-16 bg-slate-100 animate-pulse rounded mt-2" />
+                <div className="h-3 w-28 bg-slate-100 animate-pulse rounded mt-2" />
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-semibold mt-2">{closedSurveys}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Active window tracking
+                </p>
+              </>
+            )}
           </Card>
+
           <Card className="p-5 border-slate-200">
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-600">Live Polls</p>
               <Radio className="w-5 h-5 text-cyan-600" />
             </div>
-            <p className="text-3xl font-semibold mt-2">{livePolls}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              {totalPolls} total polls
-            </p>
+            {pollsLoading ? (
+              <>
+                <div className="h-9 w-16 bg-slate-100 animate-pulse rounded mt-2" />
+                <div className="h-3 w-24 bg-slate-100 animate-pulse rounded mt-2" />
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-semibold mt-2">{livePolls}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {totalPolls} total polls
+                </p>
+              </>
+            )}
           </Card>
+
           <Card className="p-5 border-slate-200">
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-600">Total Votes</p>
               <ChartLine className="w-5 h-5 text-emerald-600" />
             </div>
-            <p className="text-3xl font-semibold mt-2">{totalVotes}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Live participation volume
-            </p>
+            {pollsLoading ? (
+              <>
+                <div className="h-9 w-16 bg-slate-100 animate-pulse rounded mt-2" />
+                <div className="h-3 w-36 bg-slate-100 animate-pulse rounded mt-2" />
+              </>
+            ) : (
+              <>
+                <p className="text-3xl font-semibold mt-2">{totalVotes}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Live participation volume
+                </p>
+              </>
+            )}
           </Card>
         </motion.div>
 
