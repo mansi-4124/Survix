@@ -29,6 +29,12 @@ export const useActiveOrganization = () => {
     );
   }, [organizations, setOrganizations]);
 
+  useEffect(() => {
+    if (!activeOrganizationId && organizations?.length) {
+      setActiveOrganizationId(organizations[0].id);
+    }
+  }, [organizations, activeOrganizationId, setActiveOrganizationId]);
+
   return {
     organizations: storedOrganizations,
     activeOrganizationId,
