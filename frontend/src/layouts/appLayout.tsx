@@ -40,8 +40,10 @@ import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useEffect, useRef, useState } from "react";
 import { PageLoader } from "@/components/common/page-loader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useBootstrapAppData } from "@/app/useBootstrapAppData";
 
 export const AppLayout = () => {
+  useBootstrapAppData();
   const navigate = useNavigate();
   const location = useLocation();
   const { orgId } = useParams();

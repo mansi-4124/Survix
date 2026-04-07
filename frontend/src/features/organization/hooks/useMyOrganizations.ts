@@ -4,10 +4,10 @@ import { organizationKeys } from "../api/organization.keys";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 
 export const useMyOrganizations = () => {
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
   return useQuery({
     queryKey: organizationKeys.lists(),
     queryFn: organizationApi.getMyOrganizations,
-    enabled: !!user,
+    enabled: hasHydrated && !!user,
   });
 };
